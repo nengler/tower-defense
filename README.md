@@ -16,6 +16,6 @@ npm run package  # dist/tower-defense/: the packaged game
 
 ## Updating the engine
 
-The `@rge/*` dependencies point at one engine release, e.g. `.../releases/download/v0.1.0/rge-runtime-0.1.0.tgz`. To move to
+The `@rge/*` dependencies point at one engine release, e.g. `.../releases/download/v0.1.1/rge-runtime-0.1.1.tgz`. To move to
 a newer one, change the version in every `@rge/*` URL together (each pack depends on the others at its own version), then
 `npm install && npm run check`.
