@@ -25,3 +25,20 @@ export function withCooldown(
   return next;
 }
 
+
+/** Each species' idle bob in `assets/creatures.png` (two frames a row, rows in `SPECIES_IDS` order; `tools/make-art.ts`). */
+export const CREATURE_ANIMATIONS = {
+  emberling: { frames: "0-1", fps: 3 },
+  puddlepup: { frames: "2-3", fps: 2 },
+  voltkit: { frames: "4-5", fps: 4 },
+  pebblet: { frames: "6-7", fps: 1.5 },
+  sproutling: { frames: "8-9", fps: 2 },
+} as const;
+
+/** Each enemy kind's walk in `assets/enemies.png` (rows in `ENEMY_KINDS` order). */
+export const ENEMY_ANIMATIONS = {
+  crawler: { frames: "0-1", fps: 6 },
+  skitter: { frames: "2-3", fps: 10 },
+  mite: { frames: "4-5", fps: 12 },
+  shell: { frames: "6-7", fps: 3 },
+} as const;

@@ -1,7 +1,7 @@
-import { Collider, Entity, Shape, useBody, useMutable, useUpdate } from "@rge/runtime/jsx";
+import { AnimatedSprite, Collider, Entity, Shape, useBody, useMutable, useUpdate } from "@rge/runtime/jsx";
 
 import { NO_AURA, PLAIN_BLAST, type Effect } from "./battle.ts";
-import { pipFill, withCooldown } from "./rules/draw.ts";
+import { CREATURE_ANIMATIONS, pipFill, withCooldown } from "./rules/draw.ts";
 import { comboOf, MOVES, type MoveId } from "./rules/moves.ts";
 import { scaled } from "./rules/scaled.ts";
 import { SPECIES, statsAt, type SpeciesId } from "./rules/species.ts";
@@ -33,7 +33,7 @@ interface CreatureProps {
  * in equip order, that has a use (an enemy in reach; a buff always has one), and is busy for that move's animation, at the end of
  * which the move lands (`onUse`). A haste on it (from an ally's buff) makes its animations and cooldowns run faster.
  *
- * It draws a square in its type's colour, a ring while it is using a move, and under it one pip per equipped move that fills as the
+ * It draws its species' sprite (an idle bob), a ring while it is using a move, and under it one pip per equipped move that fills as the
  * move's cooldown runs.
  */
 export function Creature({ id, species, level, equipped, x, y, selected, onUse }: CreatureProps) {
@@ -135,7 +135,15 @@ export function Creature({ id, species, level, equipped, x, y, selected, onUse }
       {s.busy !== "" && (
         <Shape kind="circle" width={SIZE + 6} height={SIZE + 6} x={-SIZE / 2 - 3} y={-SIZE / 2 - 4} color={`${TYPE_COLOR[MOVES[s.busy].type]}80`} />
       )}
-      <Shape kind="rect" width={SIZE} height={SIZE} x={-SIZE / 2} y={-SIZE / 2 - 1} color={TYPE_COLOR[type]} />
+      <AnimatedSprite
+        sheet="creatures.png"
+        frameWidth={12}
+        frameHeight={12}
+        animations={CREATURE_ANIMATIONS}
+        animation={species}
+        originX={6}
+        originY={7}
+      />
       {s.hasteFor > 0 && <Shape kind="rect" width={2} height={2} x={SIZE / 2 - 1} y={-SIZE / 2 - 2} color={TYPE_COLOR.bloom} />}
       {equipped.map((move, i) => (
         <Entity key={move} x={-SIZE / 2 + i * 3} y={SIZE / 2 + 1}>

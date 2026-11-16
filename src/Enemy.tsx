@@ -1,6 +1,7 @@
-import { after, cancelTimers, Collider, Entity, Shape, useMutable, useUpdate } from "@rge/runtime/jsx";
+import { after, AnimatedSprite, cancelTimers, Collider, Entity, Shape, useMutable, useUpdate } from "@rge/runtime/jsx";
 
 import { afterArmor, ENEMIES, type EnemyKind } from "./rules/enemies.ts";
+import { ENEMY_ANIMATIONS } from "./rules/draw.ts";
 import { PATH, pathAt } from "./rules/map.ts";
 import type { Status } from "./rules/moves.ts";
 import { TYPE_COLOR, typeFactor } from "./rules/types.ts";
@@ -24,7 +25,7 @@ interface EnemyProps {
  * middle is in. What a blast leaves stays on it as state that counts down: stunned (it stops), slowed, burning (damage over time)
  * and soaked. A combo move does more against an enemy with the status it plays off (soaked for Volt moves, burning, stunned,
  * slowed), and a soak is used up by it. An armoured kind takes its armour off every hit (not a burn). It draws a circle in its type's colour, a health bar once hurt,
- * and a mark for each status. Creatures find it by its collider, whose data says where it is.
+ * and a mark for each status. It draws its kind's walk, white for a moment when hit. Creatures find it by its collider, whose data says where it is.
  */
 export function Enemy({ id, kind, maxHp, onKilled, onLeaked, onDamaged, onHit }: EnemyProps) {
   const info = ENEMIES[kind];
@@ -88,8 +89,8 @@ export function Enemy({ id, kind, maxHp, onKilled, onLeaked, onDamaged, onHit }:
 
   return (
     <Entity x={at.x} y={at.y}>
-      {info.armor > 0 && <Shape kind="rect" width={info.size + 2} height={info.size + 2} x={-half - 1} y={-half - 1} color="#c8c8d0" />}
-      <Shape kind="circle" width={info.size} height={info.size} x={-half} y={-half} color={s.flash ? "#ffffff" : TYPE_COLOR[info.type]} />
+      <AnimatedSprite sheet="enemies.png" frameWidth={12} frameHeight={12} animations={ENEMY_ANIMATIONS} animation={kind} originX={6} originY={6} />
+      {s.flash && <Shape kind="circle" width={info.size + 2} height={info.size + 2} x={-half - 1} y={-half - 1} color="#ffffffb0" />}
       {s.stun > 0 && <Shape kind="rect" width={info.size + 2} height={1} x={-half - 1} y={-half - 2} color="#ffffff" />}
       {s.soak > 0 && <Shape kind="rect" width={2} height={2} x={half} y={-half} color={TYPE_COLOR.tide} />}
       {s.burnFor > 0 && <Shape kind="rect" width={2} height={2} x={-half - 2} y={-half} color={TYPE_COLOR.ember} />}

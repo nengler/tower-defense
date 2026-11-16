@@ -1,6 +1,7 @@
-import { Button, Flex, Menu, Text } from "@rge/runtime/jsx";
+import { AnimatedSprite, Button, Flex, Menu, Text } from "@rge/runtime/jsx";
 
 import { useGame } from "./GameState.ts";
+import { CREATURE_ANIMATIONS } from "./rules/draw.ts";
 import { MOVES } from "./rules/moves.ts";
 import { masteryLevel } from "./rules/progress.ts";
 import { SPECIES, statsAt } from "./rules/species.ts";
@@ -21,6 +22,7 @@ export function Offer() {
       <Menu direction="row" gap={6}>
         {offer.map((id) => (
           <Button key={id} autoFocus={id === offer[0]} onPress={() => takeOffer(id)} padding={4} width={96} direction="column" gap={3}>
+            <AnimatedSprite sheet="creatures.png" frameWidth={12} frameHeight={12} animations={CREATURE_ANIMATIONS} animation={id} />
             <Text color={TYPE_COLOR[SPECIES[id].type]}>{SPECIES[id].name}</Text>
             <Text color="#6a7088">{SPECIES[id].type.toUpperCase()}</Text>
             <Text color="#a7b0c8">{`ATK ${statsAt(id, 1).atk} SPD ${statsAt(id, 1).spd}`}</Text>
