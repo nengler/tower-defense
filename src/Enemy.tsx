@@ -1,4 +1,4 @@
-import { Collider, Entity, Shape, useMutable, useUpdate } from "@rge/runtime/jsx";
+import { after, cancelTimers, Collider, Entity, Shape, useMutable, useUpdate } from "@rge/runtime/jsx";
 
 import { afterArmor, ENEMIES, type EnemyKind } from "./rules/enemies.ts";
 import { PATH, pathAt } from "./rules/map.ts";
@@ -9,12 +9,14 @@ interface EnemyProps {
   id: number;
   kind: EnemyKind;
   maxHp: number;
-  /** Its hit points ran out. */
-  onKilled: (id: number) => void;
+  /** Its hit points ran out, where it stood. */
+  onKilled: (id: number, x: number, y: number) => void;
   /** It reached the end of the path. */
   onLeaked: (id: number, kind: EnemyKind) => void;
   /** It took damage from the creature `from` (for that creature's XP): never more than the hit points it had left. */
   onDamaged: (from: number, amount: number) => void;
+  /** A move hit it (not a burn): how much, and whether a combo made it more. For the number that pops up. */
+  onHit: (x: number, y: number, amount: number, combo: boolean) => void;
 }
 
 /**
@@ -24,7 +26,7 @@ interface EnemyProps {
  * slowed), and a soak is used up by it. An armoured kind takes its armour off every hit (not a burn). It draws a circle in its type's colour, a health bar once hurt,
  * and a mark for each status. Creatures find it by its collider, whose data says where it is.
  */
-export function Enemy({ id, kind, maxHp, onKilled, onLeaked, onDamaged }: EnemyProps) {
+export function Enemy({ id, kind, maxHp, onKilled, onLeaked, onDamaged, onHit }: EnemyProps) {
   const info = ENEMIES[kind];
   const s = useMutable({
     dist: 0,
@@ -36,6 +38,8 @@ export function Enemy({ id, kind, maxHp, onKilled, onLeaked, onDamaged }: EnemyP
     burnFor: 0,
     burnFrom: -1,
     soak: 0,
+    /** White for a moment after a hit: only for the eye, so a timer turns it off. */
+    flash: false,
   });
   const at = pathAt(PATH, s.dist);
   const half = info.size / 2;
@@ -60,7 +64,7 @@ export function Enemy({ id, kind, maxHp, onKilled, onLeaked, onDamaged }: EnemyP
 
   useUpdate((dt) => {
     if (s.hp <= 0) {
-      onKilled(id);
+      onKilled(id, at.x, at.y);
       return;
     }
     if (s.burnFor > 0) {
@@ -85,7 +89,7 @@ export function Enemy({ id, kind, maxHp, onKilled, onLeaked, onDamaged }: EnemyP
   return (
     <Entity x={at.x} y={at.y}>
       {info.armor > 0 && <Shape kind="rect" width={info.size + 2} height={info.size + 2} x={-half - 1} y={-half - 1} color="#c8c8d0" />}
-      <Shape kind="circle" width={info.size} height={info.size} x={-half} y={-half} color={TYPE_COLOR[info.type]} />
+      <Shape kind="circle" width={info.size} height={info.size} x={-half} y={-half} color={s.flash ? "#ffffff" : TYPE_COLOR[info.type]} />
       {s.stun > 0 && <Shape kind="rect" width={info.size + 2} height={1} x={-half - 1} y={-half - 2} color="#ffffff" />}
       {s.soak > 0 && <Shape kind="rect" width={2} height={2} x={half} y={-half} color={TYPE_COLOR.tide} />}
       {s.burnFor > 0 && <Shape kind="rect" width={2} height={2} x={-half - 2} y={-half} color={TYPE_COLOR.ember} />}
@@ -113,7 +117,16 @@ export function Enemy({ id, kind, maxHp, onKilled, onLeaked, onDamaged }: EnemyP
           // A combo: more against an enemy with the status it plays off, which it may use up.
           const combo = b.bonusVs !== "" && has(b.bonusVs);
           if (combo && b.consumes) spend(b.bonusVs);
-          if (b.damage > 0) hurt(b.from, afterArmor(kind, b.damage * factor * (combo ? b.bonus : 1)));
+          if (b.damage > 0) {
+            const amount = afterArmor(kind, b.damage * factor * (combo ? b.bonus : 1));
+            hurt(b.from, amount);
+            onHit(at.x, at.y, amount, combo);
+            cancelTimers();
+            s.flash = true;
+            after(0.08, () => {
+              s.flash = false;
+            });
+          }
           if (b.burnFor > 0) {
             s.burn = b.burn * factor;
             s.burnFor = b.burnFor;

@@ -18,8 +18,9 @@ function enemy(kind: "crawler" | "skitter" = "crawler", maxHp = 1000) {
   const onKilled = mock.fn();
   const onLeaked = mock.fn();
   const onDamaged = mock.fn();
-  const t = render(Enemy, { id: 1, kind, maxHp, onKilled, onLeaked, onDamaged });
-  return { t, onKilled, onLeaked, onDamaged };
+  const onHit = mock.fn();
+  const t = render(Enemy, { id: 1, kind, maxHp, onKilled, onLeaked, onDamaged, onHit });
+  return { t, onKilled, onLeaked, onDamaged, onHit };
 }
 
 const fields = (t: { state(): Record<string, unknown> }) => t.state().s as Record<string, number>;
@@ -112,13 +113,29 @@ describe("an enemy", () => {
     }
   });
 
+  it("a hit is reported for its number (a combo's flagged) and flashes it white for a moment; a burn is not", () => {
+    const { t, onHit } = enemy();
+    t.collide("enemy", blast({ damage: 10 }));
+    assert.deepEqual(onHit.mock.calls[0]?.arguments, [START.x, START.y, 10, false]);
+    assert.equal((t.state().s as { flash: boolean }).flash, true);
+    t.step(6);
+    assert.equal((t.state().s as { flash: boolean }).flash, false);
+    t.collide("enemy", blast({ soak: 3 }));
+    t.collide("enemy", blast({ damage: 10, bonusVs: "soaked", bonus: 2, consumes: true }));
+    assert.deepEqual(onHit.mock.calls.at(-1)?.arguments.slice(2), [20, true], "it has walked on: only the amount and the combo");
+    const hits = onHit.mock.callCount();
+    t.collide("enemy", blast({ burn: 5, burnFor: 1 }));
+    t.step(60);
+    assert.equal(onHit.mock.callCount(), hits);
+  });
+
   it("never reports more damage than it had left, and says it died the step after", () => {
     const { t, onDamaged, onKilled } = enemy("skitter", 20);
     t.collide("enemy", blast({ damage: 50 }));
     assert.equal(onDamaged.mock.calls[0]?.arguments[1], 20);
     assert.equal(onKilled.mock.callCount(), 0);
     t.step();
-    assert.deepEqual(onKilled.mock.calls[0]?.arguments, [1]);
+    assert.deepEqual(onKilled.mock.calls[0]?.arguments, [1, START.x, START.y]);
   });
 
   it("says when it reaches the end of the path", () => {
