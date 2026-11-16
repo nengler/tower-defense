@@ -2,6 +2,9 @@ import type { Type } from "./types.ts";
 
 export type EnemyKind = "crawler" | "skitter" | "mite" | "shell";
 
+/** Every kind, in the order of their rows in `assets/enemies.png`. */
+export const ENEMY_KINDS: readonly EnemyKind[] = ["crawler", "skitter", "mite", "shell"];
+
 export interface EnemyKindInfo {
   readonly name: string;
   readonly type: Type;

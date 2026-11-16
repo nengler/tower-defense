@@ -1,21 +1,21 @@
-import { Entity, Shape } from "@rge/runtime/jsx";
+import { Entity, Sprite } from "@rge/runtime/jsx";
 
 import { COLS, isPath, ROWS, TILE } from "./rules/map.ts";
 
-/** Every tile of the grid, in reading order. */
-const TILES = Array.from({ length: COLS * ROWS }, (_, i) => ({ id: i, col: i % COLS, row: Math.floor(i / COLS) }));
-const PATH = TILES.filter((t) => isPath(t.col, t.row));
+/** Every tile of the grid, in reading order, with the frame of `assets/tiles.png` it shows: grass (now and then a tuft) or path. */
+const TILES = Array.from({ length: COLS * ROWS }, (_, i) => {
+  const col = i % COLS;
+  const row = Math.floor(i / COLS);
+  const tuft = ((col * 7 + row * 13) % 5) === 0;
+  return { id: i, col, row, frame: isPath(col, row) ? 2 : tuft ? 1 : 0 };
+});
 
-/** The ground: grass, the path, and a faint grid so a free tile is easy to see. */
+/** The ground: grass and the path, from `assets/tiles.png` (`tools/make-art.ts`). */
 export function Field() {
   return (
     <Entity>
-      <Shape kind="rect" width={COLS * TILE} height={ROWS * TILE} color="#1d2a22" />
       {TILES.map((t) => (
-        <Shape key={t.id} kind="rect" width={TILE - 1} height={TILE - 1} x={t.col * TILE} y={t.row * TILE} color="#223228" />
-      ))}
-      {PATH.map((t) => (
-        <Shape key={t.id} kind="rect" width={TILE} height={TILE} x={t.col * TILE} y={t.row * TILE} color="#5b4d3a" />
+        <Sprite key={t.id} image="tiles.png" frameWidth={TILE} frameHeight={TILE} frame={t.frame} x={t.col * TILE} y={t.row * TILE} />
       ))}
     </Entity>
   );
