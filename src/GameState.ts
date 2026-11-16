@@ -1,5 +1,7 @@
 import { createGameState } from "@rge/runtime";
 
+import { setVolume, sfx } from "./effects.ts";
+
 import type { MoveId } from "./rules/moves.ts";
 import { bench, earn, equipMove, newCreature, place, raiseMove, standingAt, unequipMove, type Owned } from "./rules/roster.ts";
 import { MASTERY_PER_RUN, MASTERY_PER_WAVE, masteryLevel } from "./rules/progress.ts";
@@ -59,6 +61,7 @@ export const useGame = createGameState(
       s.selected = s.nextCreature;
       s.nextCreature += 1;
       s.offer = [];
+      sfx.play("pick");
     },
     openSettings(s) {
       s.screen = "settings";
@@ -75,6 +78,7 @@ export const useGame = createGameState(
     },
     changeVolume(s, by: number) {
       s.volume = Math.min(10, Math.max(0, s.volume + by));
+      setVolume(s.volume / 10);
     },
     toggleMusic(s) {
       s.music = !s.music;
@@ -113,7 +117,10 @@ export const useGame = createGameState(
         s.selected = there.id;
         return;
       }
-      if (s.selected >= 0) s.roster = place(s.roster, s.selected, col, row);
+      if (s.selected < 0) return;
+      const before = s.roster;
+      s.roster = place(s.roster, s.selected, col, row);
+      if (s.roster !== before) sfx.play("pick");
     },
     /** Take the selected creature off the field. */
     benchSelected(s) {
@@ -136,7 +143,9 @@ export const useGame = createGameState(
     },
     /** A creature dealt damage: it earns that much XP. */
     gainXp(s, id: number, amount: number) {
+      const before = s.roster.find((c) => c.id === id)?.level ?? 0;
       s.roster = earn(s.roster, id, amount);
+      if ((s.roster.find((c) => c.id === id)?.level ?? 0) > before) sfx.play("level");
     },
   }
 );

@@ -6,6 +6,7 @@ import { findComponent } from "@rge/testing";
 
 import { bindings, gameConfig, screen } from "../game.ts";
 import { useGame } from "../src/GameState.ts";
+import { sfx } from "../src/effects.ts";
 import { centre } from "../src/rules/map.ts";
 
 /** A click on a tile's middle. */
@@ -53,4 +54,14 @@ test("a milestone comes before wave 2: after wave 1 a second creature is offered
 test("the same wave with nobody on the field costs a life per enemy", () => {
   const { states } = play(`_*2, Enter, _*3, Enter, _*3, Space, _*2100`);
   assert.equal(states[states.length - 1]!.lives, 5);
+});
+
+test("a wave sounds like one: its horn, hits landing, enemies dying, and a level-up", () => {
+  const before = { wave: sfx.plays("wave"), hit: sfx.plays("hit"), die: sfx.plays("die"), level: sfx.plays("level"), pick: sfx.plays("pick") };
+  play(`_*2, Enter, _*5, right, _, Enter, _*2, ${tile(3, 2)}, _, Space, _*2100`);
+  assert.equal(sfx.plays("wave") - before.wave, 1);
+  assert.equal(sfx.plays("pick") - before.pick, 2, "taken, then placed");
+  assert.ok(sfx.plays("hit") - before.hit > 5);
+  assert.ok(sfx.plays("die") - before.die >= 3);
+  assert.ok(sfx.plays("level") - before.level >= 1);
 });

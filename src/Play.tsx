@@ -1,17 +1,20 @@
-import { Entity, Hud, useInput, useMutable, useUpdate } from "@rge/runtime/jsx";
+import { Entity, Hud, ParticleLayer, useInput, useMutable, useUpdate } from "@rge/runtime/jsx";
 
 import { Bar } from "./Bar.tsx";
 import { Card } from "./Card.tsx";
 import type { Effect as Used, Foe, Placed } from "./battle.ts";
 import { Creature } from "./Creature.tsx";
 import { Effect } from "./Effect.tsx";
+import { fx, sfx } from "./effects.ts";
 import { Enemy } from "./Enemy.tsx";
 import { Field } from "./Field.tsx";
 import { Offer } from "./Offer.tsx";
 import { useGame } from "./GameState.ts";
 import { Pause } from "./Pause.tsx";
+import { Popup } from "./Popup.tsx";
 import { save } from "./save.ts";
 import { ENEMIES, hpOf, type EnemyKind } from "./rules/enemies.ts";
+import { MOVES } from "./rules/moves.ts";
 import { centre } from "./rules/map.ts";
 import { creatureById, onField } from "./rules/roster.ts";
 import { Tiles } from "./Tiles.tsx";
@@ -45,6 +48,8 @@ export function Play() {
     enemies: [] as readonly Foe[],
     /** Moves landing on the field. */
     effects: [] as readonly Placed[],
+    /** Damage numbers rising from hits (the newest 30). */
+    popups: [] as readonly { readonly id: number; readonly x: number; readonly y: number; readonly amount: number; readonly combo: boolean }[],
     nextId: 1,
   });
   const spawns = spawnsOf(s.wave);
@@ -86,20 +91,37 @@ export function Play() {
     if (s.active || s.wave >= WAVE_COUNT || offering) return;
     s.wave += 1;
     s.active = true;
+    sfx.play("wave");
     s.clock = 0;
     s.spawned = 0;
   };
-  const killed = (id: number) => {
+  const killed = (id: number, x: number, y: number) => {
     s.enemies = s.enemies.filter((e) => e.id !== id);
+    fx.burst("die", x, y);
+    sfx.play("die");
   };
   const leaked = (id: number, kind: EnemyKind) => {
     s.enemies = s.enemies.filter((e) => e.id !== id);
     s.lives = Math.max(0, s.lives - ENEMIES[kind].lives);
+    sfx.play("leak");
+  };
+  const hit = (x: number, y: number, amount: number, combo: boolean) => {
+    s.popups = [...s.popups.slice(-29), { id: s.nextId, x, y, amount, combo }];
+    s.nextId += 1;
+    if (combo) {
+      fx.burst("combo", x, y);
+      sfx.play("combo");
+    }
+  };
+  const popped = (id: number) => {
+    s.popups = s.popups.filter((p) => p.id !== id);
   };
   const damaged = (from: number, amount: number) => {
     if (from >= 0) gainXp(from, amount);
   };
   const used = (effect: Used) => {
+    const shape = MOVES[effect.move].shape;
+    sfx.play(shape === "buff" ? "buff" : shape === "hit" ? "hit" : "area");
     s.effects = [...s.effects, { ...effect, id: s.nextId }];
     s.nextId += 1;
   };
@@ -125,10 +147,14 @@ export function Play() {
         />
       ))}
       {s.enemies.map((e) => (
-        <Enemy key={e.id} {...e} onKilled={killed} onLeaked={leaked} onDamaged={damaged} />
+        <Enemy key={e.id} {...e} onKilled={killed} onLeaked={leaked} onDamaged={damaged} onHit={hit} />
       ))}
       {s.effects.map((e) => (
         <Effect key={e.id} {...e} onDone={shown} />
+      ))}
+      <ParticleLayer particles={fx} />
+      {s.popups.map((p) => (
+        <Popup key={p.id} {...p} onDone={popped} />
       ))}
       <Hud>
         <Bar lives={s.lives} wave={s.wave} active={s.active} onStartWave={startWave} />
