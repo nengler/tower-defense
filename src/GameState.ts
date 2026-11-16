@@ -2,7 +2,9 @@ import { createGameState } from "@rge/runtime";
 
 import type { MoveId } from "./rules/moves.ts";
 import { bench, earn, equipMove, newCreature, place, raiseMove, standingAt, unequipMove, type Owned } from "./rules/roster.ts";
-import { SPECIES_IDS } from "./rules/species.ts";
+import { pick } from "./rules/rng.ts";
+import { SPECIES_IDS, type SpeciesId } from "./rules/species.ts";
+import { OFFER_SIZE } from "./rules/waves.ts";
 
 type Screen = "title" | "settings" | "play" | "won" | "lost";
 
@@ -24,15 +26,36 @@ export const useGame = createGameState(
     /** The selected creature's id, or -1. */
     selected: -1,
     nextCreature: 1,
+    /** The creatures a milestone offers; empty while there is no milestone. */
+    offer: [] as readonly SpeciesId[],
+    /** What offers are rolled from: each run starts from the next seed, so runs differ but a test can replay one. */
+    seed: 1,
   },
   {
-    /** A new run: every species once, on the bench. (Milestone picks replace this.) */
+    /** A new run: no creatures, and the first milestone's offer. */
     start(s) {
       s.screen = "play";
       s.paused = false;
-      s.roster = SPECIES_IDS.map((species, i) => newCreature(i + 1, species, 0));
-      s.nextCreature = SPECIES_IDS.length + 1;
-      s.selected = 1;
+      s.roster = [];
+      s.nextCreature = 1;
+      s.selected = -1;
+      const rolled = pick(SPECIES_IDS, OFFER_SIZE, s.seed);
+      s.offer = rolled.picked;
+      s.seed = rolled.seed;
+    },
+    /** A milestone: roll an offer. */
+    milestone(s) {
+      const rolled = pick(SPECIES_IDS, OFFER_SIZE, s.seed);
+      s.offer = rolled.picked;
+      s.seed = rolled.seed;
+    },
+    /** Take a creature the offer has: it joins the roster on the bench, selected so a press on a tile places it. */
+    takeOffer(s, species: SpeciesId) {
+      if (!s.offer.includes(species)) return;
+      s.roster = [...s.roster, newCreature(s.nextCreature, species, 0)];
+      s.selected = s.nextCreature;
+      s.nextCreature += 1;
+      s.offer = [];
     },
     openSettings(s) {
       s.screen = "settings";

@@ -8,7 +8,8 @@ field and which moves they have equipped, in what order.
 
 - A **run** is a series of waves on one map. Every run starts fresh: no creatures, no levels.
 - **Enemies cannot hurt creatures.** Enemies walk the path; each one that reaches the end costs a life. No lives left ends the run.
-- At **milestones** (after certain waves, and at the start of a run) you pick one new creature from a short offer.
+- At **milestones** (before waves 1, 3 and 5) you pick one new creature from an offer of three. A run starts with no creatures:
+  the first milestone gives the first one.
 - You may own any number of creatures, but **at most 5 are on the field** at once. A creature goes on **any free tile** that is not
   path. Placing, moving and taking a creature off the field are free.
 - There are **no items and no money**.
@@ -103,7 +104,7 @@ a creature opens its card: stats, level, and its moves, which can be equipped, u
 ## The first version
 
 One map, 3 species, about 8 moves (damage, splash, stun, slow, burn, haste, and the soak/Volt combo), 2 enemy types, 5 waves,
-levels, moves swapped at any time, one milestone, and mastery saved between runs. Shapes only, no art. Its question: is it fun when
+levels, moves swapped at any time, three milestones, and mastery saved between runs. Shapes only, no art. Its question: is it fun when
 creatures use their own moves on cooldowns and the player manages which moves they have equipped?
 
 ## How it is built
