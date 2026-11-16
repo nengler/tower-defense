@@ -7,17 +7,17 @@
     "name": "tower-defense"
   },
   "dependencies": {
-    "@tsengine/native": "https://github.com/nengler/react-game-engine/releases/download/v0.2.0/tsengine-native-0.2.0.tgz",
-    "@tsengine/player": "https://github.com/nengler/react-game-engine/releases/download/v0.2.0/tsengine-player-0.2.0.tgz",
-    "@tsengine/player-node": "https://github.com/nengler/react-game-engine/releases/download/v0.2.0/tsengine-player-node-0.2.0.tgz",
-    "@tsengine/runtime": "https://github.com/nengler/react-game-engine/releases/download/v0.2.0/tsengine-runtime-0.2.0.tgz",
-    "@tsengine/compiler": "https://github.com/nengler/react-game-engine/releases/download/v0.2.0/tsengine-compiler-0.2.0.tgz"
+    "@tsengine/native": "https://github.com/nengler/react-game-engine/releases/download/v0.3.0/tsengine-native-0.3.0.tgz",
+    "@tsengine/player": "https://github.com/nengler/react-game-engine/releases/download/v0.3.0/tsengine-player-0.3.0.tgz",
+    "@tsengine/player-node": "https://github.com/nengler/react-game-engine/releases/download/v0.3.0/tsengine-player-node-0.3.0.tgz",
+    "@tsengine/runtime": "https://github.com/nengler/react-game-engine/releases/download/v0.3.0/tsengine-runtime-0.3.0.tgz",
+    "@tsengine/compiler": "https://github.com/nengler/react-game-engine/releases/download/v0.3.0/tsengine-compiler-0.3.0.tgz"
   },
   "devDependencies": {
-    "@tsengine/cli": "https://github.com/nengler/react-game-engine/releases/download/v0.2.0/tsengine-cli-0.2.0.tgz",
-    "@tsengine/testing": "https://github.com/nengler/react-game-engine/releases/download/v0.2.0/tsengine-testing-0.2.0.tgz",
+    "@tsengine/cli": "https://github.com/nengler/react-game-engine/releases/download/v0.3.0/tsengine-cli-0.3.0.tgz",
+    "@tsengine/testing": "https://github.com/nengler/react-game-engine/releases/download/v0.3.0/tsengine-testing-0.3.0.tgz",
     "@types/node": "^22.10.0",
-    "@tsengine/language-server": "https://github.com/nengler/react-game-engine/releases/download/v0.2.0/tsengine-language-server-0.2.0.tgz"
+    "@tsengine/language-server": "https://github.com/nengler/react-game-engine/releases/download/v0.3.0/tsengine-language-server-0.3.0.tgz"
   },
   "scripts": {
     "build": "tse build",

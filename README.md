@@ -5,7 +5,8 @@ A tower defense game built on [react-game-engine](https://github.com/nengler/rea
 
 ## Setup
 
-Needs Node 22.18 or newer, on Linux x64 (the engine's native binaries are built for that).
+Needs Node 22.18 or newer, on Linux x64 (glibc 2.38 or newer), macOS (Intel or Apple silicon) or Windows x64: the engine ships native
+binaries for each.
 
 ```sh
 npm install      # the engine's packs, from its GitHub release (see package.json)
@@ -16,6 +17,6 @@ npm run package  # dist/tower-defense/: the packaged game
 
 ## Updating the engine
 
-The `@tsengine/*` dependencies point at one engine release, e.g. `.../releases/download/v0.2.0/tsengine-runtime-0.2.0.tgz`. To move to
+The `@tsengine/*` dependencies point at one engine release, e.g. `.../releases/download/v0.3.0/tsengine-runtime-0.3.0.tgz`. To move to
 a newer one, change the version in every `@tsengine/*` URL together (each pack depends on the others at its own version), then
 `npm install && npm run check`.
