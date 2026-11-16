@@ -3,6 +3,7 @@
  * wave, an `Enemy` walks and takes its hits.
  */
 import type { EnemyKind } from "./rules/enemies.ts";
+import type { MoveId } from "./rules/moves.ts";
 import type { Type } from "./rules/types.ts";
 
 /** An enemy that has come: what `Play` knows of it. Where it is and how hurt it is are the `Enemy`'s own. */
@@ -55,9 +56,49 @@ export const PLAIN_BLAST: Blast = {
   soakedBonus: 0,
 };
 
+/** A buff landing: every ally whose middle is within `radius` of (x, y) is hasted. */
+export interface Aura {
+  readonly x: number;
+  readonly y: number;
+  readonly radius: number;
+  /** Moves this much faster (0.3 = 30 % shorter animations and cooldowns), for `hasteFor` seconds. */
+  readonly haste: number;
+  readonly hasteFor: number;
+}
+
+/** An aura that does nothing: what a blast effect carries in its `aura`. */
+export const NO_AURA: Aura = { x: 0, y: 0, radius: 0, haste: 0, hasteFor: 0 };
+
+/**
+ * What a creature's move puts on the field when its animation ends: a blast for enemies (`kind: "blast"`), or an aura for allies
+ * (`kind: "aura"`). The one it is not carries the plain value (`PLAIN_BLAST`, `NO_AURA`).
+ */
+export interface Effect {
+  readonly kind: "blast" | "aura";
+  readonly move: MoveId;
+  /** Where the creature that used it stands. */
+  readonly fromX: number;
+  readonly fromY: number;
+  /** Where it lands, and the area it covers (0 for a hit): its blast's or its aura's. */
+  readonly x: number;
+  readonly y: number;
+  readonly radius: number;
+  readonly blast: Blast;
+  readonly aura: Aura;
+}
+
+/** An effect in `Play`'s list. */
+export interface Placed extends Effect {
+  readonly id: number;
+}
+
 /** What the colliders carry (`<Collider data>`), by tag. */
 declare global {
   interface ColliderData {
+    /** A creature, as a buff sees it. */
+    ally: { readonly id: number };
+    /** A buff landing. */
+    aura: Aura;
     /** An enemy, as a creature sees it: who it is, how far along the path, where, and whether it still stands. */
     enemy: { readonly id: number; readonly dist: number; readonly x: number; readonly y: number; readonly hp: number };
     /** A move landing. */

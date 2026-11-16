@@ -11,10 +11,17 @@ export const gameConfig: PlayerConfig = {
   root: () => new Main(),
 };
 
+/** The screen as the input scripts' clicks see it (`click@x,y` in game pixels). */
+export const screen = { width: 320, height: 180, windowWidth: 320, windowHeight: 180, fit: "integer" } as const;
+
 /** Names for the input scripts that tests, parity and `rge screenshot` use (`right*30, down*10`); anything else is a key name. */
 export const bindings: InputBindings = {
   left: ["ArrowLeft"],
   right: ["ArrowRight"],
   up: ["ArrowUp"],
   down: ["ArrowDown"],
+  /** Select the first, second, … creature in the bar. */
+  first: ["1"],
+  second: ["2"],
+  third: ["3"],
 };

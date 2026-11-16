@@ -1,25 +1,34 @@
 import { Entity, Hud, useInput, useMutable, useUpdate } from "@rge/runtime/jsx";
 
 import { Bar } from "./Bar.tsx";
-import type { Foe } from "./battle.ts";
+import type { Effect as Used, Foe, Placed } from "./battle.ts";
+import { Creature } from "./Creature.tsx";
+import { Effect } from "./Effect.tsx";
 import { Enemy } from "./Enemy.tsx";
 import { Field } from "./Field.tsx";
 import { useGame } from "./GameState.ts";
 import { Pause } from "./Pause.tsx";
 import { ENEMIES, hpOf, type EnemyKind } from "./rules/enemies.ts";
+import { centre } from "./rules/map.ts";
+import { onField } from "./rules/roster.ts";
+import { Tiles } from "./Tiles.tsx";
 import { spawnsOf, WAVE_COUNT } from "./rules/waves.ts";
 
 /** Lives a run starts with. */
 export const START_LIVES = 10;
 
 /**
- * The battle. It keeps what the whole battle shares: the lives, the wave and its spawner, and the list of enemies, which it draws
- * as components that each keep their own state. An enemy reports up when it dies or gets through. The bar's button (or Space) starts
- * the next wave; Escape pauses.
+ * The battle. It keeps what the whole battle shares: the lives, the wave and its spawner, and the lists of enemies and of moves
+ * landing, which it draws as components that each keep their own state; the creatures on the field come from the roster. An enemy
+ * reports up when it dies, gets through or takes damage (its attacker's XP); a creature when a move lands. Pressing a tile selects
+ * the creature on it or puts the selected one there; Backspace benches the selected one, and 1 to 9 select a creature by its place in the bar. The bar's button (or Space) starts the next
+ * wave; Escape pauses.
  */
 export function Play() {
   const paused = useGame((s) => s.paused);
-  const { pause, finish } = useGame.actions();
+  const roster = useGame((s) => s.roster);
+  const selected = useGame((s) => s.selected);
+  const { pause, finish, gainXp, benchSelected, choose } = useGame.actions();
 
   const s = useMutable({
     lives: START_LIVES as number,
@@ -30,6 +39,8 @@ export function Play() {
     clock: 0,
     spawned: 0,
     enemies: [] as readonly Foe[],
+    /** Moves landing on the field. */
+    effects: [] as readonly Placed[],
     nextId: 1,
   });
   const spawns = spawnsOf(s.wave);
@@ -55,6 +66,8 @@ export function Play() {
   });
   useInput((input) => {
     if (input.pressed("Escape")) pause();
+    if (input.pressed("Backspace")) benchSelected();
+    for (let n = 1; n <= 9; n++) if (input.pressed(`${n}`)) choose(n - 1);
   });
 
   const startWave = () => {
@@ -71,13 +84,39 @@ export function Play() {
     s.enemies = s.enemies.filter((e) => e.id !== id);
     s.lives = Math.max(0, s.lives - ENEMIES[kind].lives);
   };
-  const damaged = (_from: number, _amount: number) => {};
+  const damaged = (from: number, amount: number) => {
+    if (from >= 0) gainXp(from, amount);
+  };
+  const used = (effect: Used) => {
+    s.effects = [...s.effects, { ...effect, id: s.nextId }];
+    s.nextId += 1;
+  };
+  const shown = (id: number) => {
+    s.effects = s.effects.filter((e) => e.id !== id);
+  };
 
   return (
     <Entity>
       <Field />
+      <Tiles />
+      {onField(roster).map((c) => (
+        <Creature
+          key={c.id}
+          id={c.id}
+          species={c.species}
+          level={c.level}
+          equipped={c.equipped}
+          x={centre(c.col, c.row).x}
+          y={centre(c.col, c.row).y}
+          selected={c.id === selected}
+          onUse={used}
+        />
+      ))}
       {s.enemies.map((e) => (
         <Enemy key={e.id} {...e} onKilled={killed} onLeaked={leaked} onDamaged={damaged} />
+      ))}
+      {s.effects.map((e) => (
+        <Effect key={e.id} {...e} onDone={shown} />
       ))}
       <Hud>
         <Bar lives={s.lives} wave={s.wave} active={s.active} onStartWave={startWave} />
