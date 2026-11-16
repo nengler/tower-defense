@@ -1,6 +1,6 @@
 import { Collider, Entity, Shape, useMutable, useUpdate } from "@rge/runtime/jsx";
 
-import { ENEMIES, type EnemyKind } from "./rules/enemies.ts";
+import { afterArmor, ENEMIES, type EnemyKind } from "./rules/enemies.ts";
 import { PATH, pathAt } from "./rules/map.ts";
 import { TYPE_COLOR, typeFactor } from "./rules/types.ts";
 
@@ -19,7 +19,7 @@ interface EnemyProps {
 /**
  * One enemy. It walks the path at its kind's speed, and takes what lands on it: a `blast` collider aimed at it, or an area its
  * middle is in. What a blast leaves stays on it as state that counts down: stunned (it stops), slowed, burning (damage over time)
- * and soaked (the next Volt move does more and uses the soak up). It draws a circle in its type's colour, a health bar once hurt,
+ * and soaked (the next Volt move does more and uses the soak up). An armoured kind takes its armour off every hit (not a burn). It draws a circle in its type's colour, a health bar once hurt,
  * and a mark for each status. Creatures find it by its collider, whose data says where it is.
  */
 export function Enemy({ id, kind, maxHp, onKilled, onLeaked, onDamaged }: EnemyProps) {
@@ -71,6 +71,7 @@ export function Enemy({ id, kind, maxHp, onKilled, onLeaked, onDamaged }: EnemyP
 
   return (
     <Entity x={at.x} y={at.y}>
+      {info.armor > 0 && <Shape kind="rect" width={info.size + 2} height={info.size + 2} x={-half - 1} y={-half - 1} color="#c8c8d0" />}
       <Shape kind="circle" width={info.size} height={info.size} x={-half} y={-half} color={TYPE_COLOR[info.type]} />
       {s.stun > 0 && <Shape kind="rect" width={info.size + 2} height={1} x={-half - 1} y={-half - 2} color="#ffffff" />}
       {s.soak > 0 && <Shape kind="rect" width={2} height={2} x={half} y={-half} color={TYPE_COLOR.tide} />}
@@ -98,7 +99,7 @@ export function Enemy({ id, kind, maxHp, onKilled, onLeaked, onDamaged }: EnemyP
           const factor = typeFactor(b.moveType, b.userType, info.type);
           const soaked = b.soakedBonus > 0 && s.soak > 0;
           if (soaked) s.soak = 0;
-          if (b.damage > 0) hurt(b.from, b.damage * factor * (soaked ? b.soakedBonus : 1));
+          if (b.damage > 0) hurt(b.from, afterArmor(kind, b.damage * factor * (soaked ? b.soakedBonus : 1)));
           if (b.burnFor > 0) {
             s.burn = b.burn * factor;
             s.burnFor = b.burnFor;

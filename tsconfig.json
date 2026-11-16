@@ -15,5 +15,5 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["src", "generated", "test", "game.ts", "main.ts", "parity.ts"]
+  "include": ["src", "generated", "test", "tools", "game.ts", "main.ts", "parity.ts"]
 }

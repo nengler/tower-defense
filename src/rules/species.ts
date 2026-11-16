@@ -27,7 +27,10 @@ export interface Species {
   readonly base: Stats;
   /** What each stat gains a level (fractions add up: 0.5 is one point every two levels). */
   readonly growth: Stats;
-  /** Its moves in the order it learns them; the first is known from level 1. */
+  /**
+   * Its moves in the order it learns them; the first is known from level 1. Its best area move comes last, after its three slots
+   * are full: it is only used if the player swaps it in.
+   */
   readonly learns: readonly Learned[];
 }
 
@@ -42,9 +45,9 @@ export const SPECIES: Readonly<Record<SpeciesId, Species>> = {
     growth: { atk: 1.5, spd: 0.5, rng: 0.5, cd: 0.5 },
     learns: [
       { move: "spark", level: 1 },
-      { move: "flare", level: 3 },
-      { move: "jolt", level: 5 },
-      { move: "rally", level: 7 },
+      { move: "jolt", level: 3 },
+      { move: "rally", level: 5 },
+      { move: "flare", level: 7 },
     ],
   },
   puddlepup: {
@@ -55,9 +58,9 @@ export const SPECIES: Readonly<Record<SpeciesId, Species>> = {
     growth: { atk: 0.5, spd: 0.5, rng: 1, cd: 1 },
     learns: [
       { move: "jet", level: 1 },
-      { move: "undertow", level: 3 },
-      { move: "rally", level: 5 },
-      { move: "zap", level: 7 },
+      { move: "rally", level: 3 },
+      { move: "zap", level: 5 },
+      { move: "undertow", level: 7 },
     ],
   },
   voltkit: {
@@ -69,8 +72,8 @@ export const SPECIES: Readonly<Record<SpeciesId, Species>> = {
     learns: [
       { move: "zap", level: 1 },
       { move: "jolt", level: 3 },
-      { move: "arc", level: 5 },
-      { move: "jet", level: 7 },
+      { move: "jet", level: 5 },
+      { move: "arc", level: 7 },
     ],
   },
 };

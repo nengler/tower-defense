@@ -6,10 +6,10 @@ field and which moves they have equipped, in what order.
 
 ## Runs
 
-- A **run** is a series of waves on one map. Every run starts fresh: no creatures, no levels.
+- A **run** is 10 waves on one map. Every run starts fresh: no creatures, no levels.
 - **Enemies cannot hurt creatures.** Enemies walk the path; each one that reaches the end costs a life. No lives left ends the run.
-- At **milestones** (before waves 1, 3 and 5) you pick one new creature from an offer of three. A run starts with no creatures:
-  the first milestone gives the first one.
+- At **milestones** (before waves 1, 2, 4, 6, 8 and 10) you pick one new creature from an offer of three. A run starts with no
+  creatures: the first milestone gives the first one. The sixth is one more than the field holds.
 - You may own any number of creatures, but **at most 5 are on the field** at once. A creature goes on **any free tile** that is not
   path. Placing, moving and taking a creature off the field are free.
 - There are **no items and no money**.
@@ -29,8 +29,9 @@ Each creature belongs to a **species**, which sets its type, its base stats, how
 | Cooldown | CD | how long until a move is ready again |
 | Type | | how strong a move is against an enemy's type |
 
-**Levels.** A creature earns XP from damage it deals (and a share when a creature it buffed deals damage). On a level-up its stats
-grow and it may learn a new move. A learned move goes into its move list; if a slot is free it is equipped.
+**Levels.** A creature earns 1 XP per point of damage it deals; a level costs 40 × the level it is at. On a level-up its stats grow
+and it may learn a new move. A learned move goes into its move list; if a slot is free it is equipped, otherwise it waits there for
+the player. (A buffer earns nothing for the damage its buff helps deal: something to revisit.)
 
 ## Moves
 
@@ -102,6 +103,21 @@ and on the end screen.
 320 × 180. The field is a 20 × 9 grid of 16 px tiles (320 × 144) with the path drawn on it; the bottom 36 px is a bar with lives,
 the wave, and the start-wave button. Under each creature on the field, one pip per equipped move fills as its cooldown runs. Clicking
 a creature opens its card: stats, level, and its moves, which can be equipped, unequipped and reordered.
+
+## Enemies
+
+| Enemy | Type | Does |
+| --- | --- | --- |
+| Crawler | Bloom | Plain and steady. |
+| Skitter | Tide | Fast, fragile. |
+| Mite | Ember | Tiny, in tight packs: an area move hits most of a pack. |
+| Shell | Stone | Slow, armoured: every hit loses 8 damage (burns ignore armour). Takes two lives if it gets through. |
+
+Every wave adds 38 % to every enemy's hit points. The waves start plain and bring in mites (wave 4) and shells (wave 5).
+
+**Why moves need managing.** Each species learns its best area move last, at level 7, when its three slots are already full: it is
+only used if the player swaps it in. `tools/balance.ts` plays whole runs headless; its table (`test/balance.expected.json`) shows a
+run that re-equips its best moves winning, and the same run that never touches its moves losing. The tests keep it that way.
 
 ## The first version
 

@@ -40,13 +40,13 @@ test("the game itself: the creature taken at the start, placed by a click, holds
   assert.ok(last.xp[0]! > 1000, "it earned XP");
 });
 
-test("a milestone comes before wave 3: after wave 2 a second creature is offered, and Space waits for it", () => {
+test("a milestone comes before wave 2: after wave 1 a second creature is offered, and Space waits for it", () => {
   const wave = `Space, _*2100`;
   // The second creature offered (right, then Enter): the Emberling, which holds the first two waves alone.
-  const { states } = play(`_*2, Enter, _*5, right, _, Enter, _*2, ${tile(3, 2)}, _, ${wave}, ${wave}, Space, _*5`);
+  const { states } = play(`_*2, Enter, _*5, right, _, Enter, _*2, ${tile(3, 2)}, _, ${wave}, Space, _*5`);
   const last = states[states.length - 1]!;
   assert.equal(last.screen, "play");
-  assert.equal(last.wave, 2, "wave 3 did not start");
+  assert.equal(last.wave, 1, "wave 2 did not start");
   assert.equal(last.offer, 3);
 });
 

@@ -4,9 +4,9 @@ import { SPECIES, type SpeciesId } from "./species.ts";
 /** The highest level a creature reaches. */
 export const MAX_LEVEL = 20;
 
-/** XP from one level to the next: 20 at level 1, 40 at level 2, … */
+/** XP from one level to the next: 40 at level 1, 80 at level 2, … (XP is damage dealt). */
 export function xpToNext(level: number): number {
-  return 20 * level;
+  return 40 * level;
 }
 
 export interface Leveled {
