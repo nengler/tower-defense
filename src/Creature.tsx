@@ -1,4 +1,4 @@
-import { AnimatedSprite, Collider, Entity, Shape, useBody, useMutable, useUpdate } from "@rge/runtime/jsx";
+import { AnimatedSprite, Collider, Entity, Shape, useBody, useMutable, useUpdate } from "@tsengine/runtime/jsx";
 
 import { NO_AURA, PLAIN_BLAST, type Effect } from "./battle.ts";
 import { CREATURE_ANIMATIONS, pipFill, withCooldown } from "./rules/draw.ts";

@@ -1,4 +1,4 @@
-import { Button, Flex, Menu, Text } from "@rge/runtime/jsx";
+import { Button, Flex, Menu, Text } from "@tsengine/runtime/jsx";
 
 import { useGame } from "./GameState.ts";
 import { MASTERY_TEXT, masteryLevel, nextMasteryAt } from "./rules/progress.ts";

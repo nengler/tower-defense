@@ -1,4 +1,4 @@
-import { Entity, Sprite } from "@rge/runtime/jsx";
+import { Entity, Sprite } from "@tsengine/runtime/jsx";
 
 import { COLS, isPath, ROWS, TILE } from "./rules/map.ts";
 

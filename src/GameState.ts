@@ -1,4 +1,4 @@
-import { createGameState } from "@rge/runtime";
+import { createGameState } from "@tsengine/runtime";
 
 import { setVolume, sfx } from "./effects.ts";
 

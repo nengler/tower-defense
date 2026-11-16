@@ -1,4 +1,4 @@
-import { Collider, Entity, Shape, useMutable, useUpdate } from "@rge/runtime/jsx";
+import { Collider, Entity, Shape, useMutable, useUpdate } from "@tsengine/runtime/jsx";
 
 import type { Aura, Blast } from "./battle.ts";
 import { fadeColor } from "./rules/draw.ts";

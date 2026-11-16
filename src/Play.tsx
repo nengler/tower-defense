@@ -1,4 +1,4 @@
-import { Entity, Hud, ParticleLayer, useInput, useMutable, useUpdate } from "@rge/runtime/jsx";
+import { Entity, Hud, ParticleLayer, useInput, useMutable, useUpdate } from "@tsengine/runtime/jsx";
 
 import { Bar } from "./Bar.tsx";
 import { Card } from "./Card.tsx";
@@ -34,6 +34,7 @@ export function Play() {
   const paused = useGame((s) => s.paused);
   const team = useGame((s) => s.roster);
   const selectedId = useGame((s) => s.selected);
+  const chosen = creatureById(team, selectedId);
   const offering = useGame((s) => s.offer.length > 0);
   const { pause, finish, gainXp, benchSelected, choose, deselect, milestone, awardWave } = useGame.actions();
 
@@ -158,7 +159,7 @@ export function Play() {
       ))}
       <Hud>
         <Bar lives={s.lives} wave={s.wave} active={s.active} onStartWave={startWave} />
-        {selectedId >= 0 && creatureById(team, selectedId) !== undefined && <Card creature={creatureById(team, selectedId)!} />}
+        {chosen !== undefined && <Card creature={chosen} />}
         {offering && <Offer />}
         {paused && <Pause />}
       </Hud>

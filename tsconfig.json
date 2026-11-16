@@ -4,7 +4,7 @@
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "jsx": "react-jsx",
-    "jsxImportSource": "@rge/runtime",
+    "jsxImportSource": "@tsengine/runtime",
     "strict": true,
     "noEmit": true,
     "noImplicitOverride": true,

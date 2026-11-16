@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { beforeEach, test } from "node:test";
 
-import { createMemoryStorage, setStorage } from "@rge/runtime";
+import { createMemoryStorage, setStorage } from "@tsengine/runtime";
 
 import { useGame } from "../src/GameState.ts";
 import { MASTERY_AT, MASTERY_PER_RUN, MASTERY_PER_WAVE, slotsFor } from "../src/rules/progress.ts";

@@ -1,4 +1,4 @@
-import { AnimatedSprite, Button, Flex, Menu, Text } from "@rge/runtime/jsx";
+import { AnimatedSprite, Button, Flex, Menu, Text } from "@tsengine/runtime/jsx";
 
 import { useGame } from "./GameState.ts";
 import { CREATURE_ANIMATIONS } from "./rules/draw.ts";
