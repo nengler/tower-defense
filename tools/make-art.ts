@@ -12,7 +12,7 @@ import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { encodePng } from "@rge/player-node";
+import { encodePng } from "@tsengine/player-node";
 
 import { ENEMY_KINDS } from "../src/rules/enemies.ts";
 import { SPECIES_IDS } from "../src/rules/species.ts";

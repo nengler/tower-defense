@@ -1,4 +1,4 @@
-import { Flex, Shape, Text } from "@rge/runtime/jsx";
+import { Flex, Shape, Text } from "@tsengine/runtime/jsx";
 
 import { useGame } from "./GameState.ts";
 import { FIELD_HEIGHT } from "./rules/map.ts";

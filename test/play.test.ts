@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { parseInputScript, runScript, type Player } from "@rge/player";
-import { findComponent, findComponents } from "@rge/testing";
+import { parseInputScript, runScript, type Player } from "@tsengine/player";
+import { findComponent, findComponents } from "@tsengine/testing";
 
 import { bindings, gameConfig } from "../game.ts";
 import { useGame } from "../src/GameState.ts";

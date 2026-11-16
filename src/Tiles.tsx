@@ -1,4 +1,4 @@
-import { Entity, Pointer } from "@rge/runtime/jsx";
+import { Entity, Pointer } from "@tsengine/runtime/jsx";
 
 import { useGame } from "./GameState.ts";
 import { COLS, ROWS, TILE } from "./rules/map.ts";

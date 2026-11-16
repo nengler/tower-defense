@@ -1,6 +1,6 @@
 name: CI
 
-# One job: install the engine's packs from their release (package.json) and run `rge check`: compile, type-check, tests, and the
+# One job: install the engine's packs from their release (package.json) and run `tse check`: compile, type-check, tests, and the
 # parity run under Node and the Rust host. The packs' native binaries are linux-x64, built for glibc 2.38 and newer, so this pins
 # ubuntu-24.04.
 on:

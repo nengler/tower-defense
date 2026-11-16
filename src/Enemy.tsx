@@ -1,4 +1,4 @@
-import { after, AnimatedSprite, cancelTimers, Collider, Entity, Shape, useMutable, useUpdate } from "@rge/runtime/jsx";
+import { after, AnimatedSprite, cancelTimers, Collider, Entity, Shape, useMutable, useUpdate } from "@tsengine/runtime/jsx";
 
 import { afterArmor, ENEMIES, type EnemyKind } from "./rules/enemies.ts";
 import { ENEMY_ANIMATIONS } from "./rules/draw.ts";

@@ -1,6 +1,6 @@
 /**
  * Plays whole runs headless against fixed strategies and prints the lives left after each wave. The battle is the game's own `Play`,
- * mounted alone with collisions on (`@rge/testing`), and a strategy does what a player does: take a creature at each milestone, put
+ * mounted alone with collisions on (`@tsengine/testing`), and a strategy does what a player does: take a creature at each milestone, put
  * it on a tile, start each wave, and (if it manages its moves) re-equip each creature's best moves whenever it learns one.
  * `test/balance.test.ts` checks the table against `test/balance.expected.json`, so a change to a number in the rules shows up as a
  * change in difficulty. `--write` updates the expected table after a change you meant to make.
@@ -11,7 +11,7 @@ import { writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { render } from "@rge/testing";
+import { render } from "@tsengine/testing";
 
 import { Play } from "../generated/Play.ts";
 import { useGame } from "../src/GameState.ts";

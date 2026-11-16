@@ -1,9 +1,9 @@
 /**
  * Plays a short run against a recording backend and prints everything the player did as one line of JSON (numbers rounded to
- * 1e-9). It runs unchanged under Node and, bundled, under the Rust host (QuickJS-ng): `rge check` requires the two outputs to
+ * 1e-9). It runs unchanged under Node and, bundled, under the Rust host (QuickJS-ng): `tse check` requires the two outputs to
  * be identical, and two runs under Node to be identical too.
  */
-import { createPlayer, parseInputScript, RecordingBackend } from "@rge/player";
+import { createPlayer, parseInputScript, RecordingBackend } from "@tsengine/player";
 
 import { bindings, gameConfig } from "./game.ts";
 

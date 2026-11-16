@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it, mock } from "node:test";
 
-import { render } from "@rge/testing";
+import { render } from "@tsengine/testing";
 
 import type { Effect } from "../src/battle.ts";
 import { Creature } from "../generated/Creature.ts";

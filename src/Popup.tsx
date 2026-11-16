@@ -1,4 +1,4 @@
-import { Entity, Text, useMutable, useUpdate } from "@rge/runtime/jsx";
+import { Entity, Text, useMutable, useUpdate } from "@tsengine/runtime/jsx";
 
 /** Seconds a number stays up. */
 const SHOWN = 0.6;
