@@ -30,7 +30,7 @@ export const sfx = {
 };
 
 export const fx = createParticles({
-  /** Where an enemy dies: a puff of bits in its type's colour is drawn over by these. */
+  /** Where an enemy dies: a puff of bits, in its type's colour (`fx.burst("die", x, y, { color })`) fading to grey. */
   die: { burst: 7, lifetime: 0.35, speed: 40, spread: 180, size: 2, shrink: true, color: "#fff1d6", endColor: "#7a6a8a", max: 120 },
   /** A combo landing: a bright spark. */
   combo: { burst: 5, lifetime: 0.3, speed: 55, spread: 180, size: 2, fade: true, color: "#ffe066", max: 60 },

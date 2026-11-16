@@ -1,4 +1,4 @@
-import { Collider, Entity, Shape, useMutable, useUpdate } from "@tsengine/runtime/jsx";
+import { Collider, Entity, Line, Shape, useMutable, useUpdate } from "@tsengine/runtime/jsx";
 
 import type { Aura, Blast } from "./battle.ts";
 import { fadeColor } from "./rules/draw.ts";
@@ -54,9 +54,7 @@ export function Effect({ id, kind, move, fromX, fromY, x, y, radius, blast, aura
           color={fadeColor(tint, 0.45, s.t, SHOWN)}
         />
       ) : (
-        <Entity x={fromX} y={fromY} rotation={Math.atan2(y - fromY, x - fromX)}>
-          <Shape kind="rect" width={Math.hypot(x - fromX, y - fromY)} height={1} y={-0.5} color={fadeColor(tint, 1, s.t, SHOWN)} />
-        </Entity>
+        <Line x={fromX} y={fromY} x2={x} y2={y} color={fadeColor(tint, 1, s.t, SHOWN)} />
       )}
       {s.t === 0 && kind === "blast" && (
         <Collider width={box * 2} height={box * 2} x={x - box} y={y - box} tag="blast" layer="blast" hits={["enemy"]} data={blast} />
