@@ -76,11 +76,11 @@ test("every species learns more moves than it has slots, and every move it learn
   }
 });
 
-test("XP: a level costs 20 × level, several can come at once, and it stops at the cap", () => {
-  assert.equal(xpToNext(1), 20);
-  assert.deepEqual(addXp(1, 0, 19), { level: 1, xp: 19, gained: 0 });
-  assert.deepEqual(addXp(1, 0, 20), { level: 2, xp: 0, gained: 1 });
-  assert.deepEqual(addXp(1, 10, 70), { level: 3, xp: 20, gained: 2 });
+test("XP: a level costs 40 × level, several can come at once, and it stops at the cap", () => {
+  assert.equal(xpToNext(1), 40);
+  assert.deepEqual(addXp(1, 0, 39), { level: 1, xp: 39, gained: 0 });
+  assert.deepEqual(addXp(1, 0, 40), { level: 2, xp: 0, gained: 1 });
+  assert.deepEqual(addXp(1, 10, 140), { level: 3, xp: 30, gained: 2 });
   assert.equal(addXp(MAX_LEVEL - 1, 0, 1e9).level, MAX_LEVEL);
   assert.equal(addXp(MAX_LEVEL, 0, 50).gained, 0);
 });
@@ -88,18 +88,18 @@ test("XP: a level costs 20 × level, several can come at once, and it stops at t
 test("mastery: a second move from the start at 1, later moves two levels earlier at 2, a fourth slot at 3", () => {
   assert.deepEqual([0, 4, 5, 14, 15, 30, 99].map(masteryLevel), [0, 0, 1, 1, 2, 3, 3]);
   assert.deepEqual(knownAt("emberling", 1, 0), ["spark"]);
-  assert.deepEqual(knownAt("emberling", 1, 1), ["spark", "flare"]);
+  assert.deepEqual(knownAt("emberling", 1, 1), ["spark", "jolt"]);
   assert.equal(learnLevel("emberling", 2, 0), 5);
   assert.equal(learnLevel("emberling", 2, 1), 5);
   assert.equal(learnLevel("emberling", 2, 2), 3);
-  assert.deepEqual(knownAt("emberling", 5, 2), ["spark", "flare", "jolt", "rally"]);
+  assert.deepEqual(knownAt("emberling", 5, 2), ["spark", "jolt", "rally", "flare"]);
   assert.equal(slotsFor(2), 3);
   assert.equal(slotsFor(3), 4);
   assert.equal(learnLevel("emberling", 9, 0), Infinity);
 });
 
-test("waves: five, in time order, harder as they go; milestones come before the first wave", () => {
-  assert.equal(WAVE_COUNT, 5);
+test("waves: ten, in time order, harder as they go; milestones come before the first wave", () => {
+  assert.equal(WAVE_COUNT, 10);
   for (let w = 1; w <= WAVE_COUNT; w++) {
     const spawns = spawnsOf(w);
     assert.ok(spawns.length > 0);

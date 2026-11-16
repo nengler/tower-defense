@@ -1,0 +1,47 @@
+{
+  "managed": {
+    "lives": [
+      10,
+      10,
+      7,
+      7,
+      7,
+      7,
+      7,
+      7,
+      7,
+      7
+    ],
+    "won": true
+  },
+  "never touches moves": {
+    "lives": [
+      10,
+      10,
+      7,
+      7,
+      2,
+      2,
+      0,
+      null,
+      null,
+      null
+    ],
+    "won": false
+  },
+  "no creatures placed": {
+    "lives": [
+      5,
+      0,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "won": false
+  }
+}

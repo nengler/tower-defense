@@ -46,7 +46,7 @@ test("a creature joins with its species' mastery: a second move at 1, a fourth s
   takeFirst("emberling");
   const ember = useGame.getState().roster[0]!;
   assert.equal(ember.mastery, 1);
-  assert.deepEqual(ember.equipped, ["spark", "flare"]);
+  assert.deepEqual(ember.equipped, ["spark", "jolt"]);
   takeFirst("voltkit");
   const volt = useGame.getState().roster[0]!;
   assert.equal(volt.mastery, 3);

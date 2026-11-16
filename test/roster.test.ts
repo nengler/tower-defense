@@ -11,7 +11,7 @@ test("a new creature is level 1 on the bench, with its first move equipped (and 
   assert.equal(c.level, 1);
   assert.equal(c.col, -1);
   assert.deepEqual(c.equipped, ["spark"]);
-  assert.deepEqual(newCreature(1, "emberling", 1).equipped, ["spark", "flare"]);
+  assert.deepEqual(newCreature(1, "emberling", 1).equipped, ["spark", "jolt"]);
 });
 
 test("a creature goes on any free tile that is not path, and moves from tile to tile", () => {
@@ -40,15 +40,15 @@ test("at most five on the field: a sixth from the bench is refused, but one on t
 });
 
 test("XP levels a creature up; a move it learns is equipped if a slot is free, and waits in its list if not", () => {
-  // Voltkit: zap (1), jolt (3), arc (5), jet (7). 20 + 40 = 60 XP to level 3.
+  // Voltkit: zap (1), jolt (3), jet (5), arc (7). 40 + 80 = 120 XP to level 3.
   let r = team(1);
-  r = earn(r, 1, 60);
+  r = earn(r, 1, 120);
   assert.equal(r[0]!.level, 3);
   assert.deepEqual(r[0]!.known, ["zap", "jolt"]);
   assert.deepEqual(r[0]!.equipped, ["zap", "jolt"]);
-  // To level 7: 60 + 80 + 100 + 120 = 360 more.
-  r = earn(r, 1, 360);
+  // To level 7: 120 + 160 + 200 + 240 = 720 more.
+  r = earn(r, 1, 720);
   assert.equal(r[0]!.level, 7);
-  assert.deepEqual(r[0]!.known, ["zap", "jolt", "arc", "jet"]);
-  assert.deepEqual(r[0]!.equipped, ["zap", "jolt", "arc"], "three slots: Splash Jet waits");
+  assert.deepEqual(r[0]!.known, ["zap", "jolt", "jet", "arc"]);
+  assert.deepEqual(r[0]!.equipped, ["zap", "jolt", "jet"], "three slots: Arc Storm waits");
 });
