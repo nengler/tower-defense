@@ -1,0 +1,117 @@
+import { Collider, Entity, Shape, useMutable, useUpdate } from "@rge/runtime/jsx";
+
+import { ENEMIES, type EnemyKind } from "./rules/enemies.ts";
+import { PATH, pathAt } from "./rules/map.ts";
+import { TYPE_COLOR, typeFactor } from "./rules/types.ts";
+
+interface EnemyProps {
+  id: number;
+  kind: EnemyKind;
+  maxHp: number;
+  /** Its hit points ran out. */
+  onKilled: (id: number) => void;
+  /** It reached the end of the path. */
+  onLeaked: (id: number, kind: EnemyKind) => void;
+  /** It took damage from the creature `from` (for that creature's XP): never more than the hit points it had left. */
+  onDamaged: (from: number, amount: number) => void;
+}
+
+/**
+ * One enemy. It walks the path at its kind's speed, and takes what lands on it: a `blast` collider aimed at it, or an area its
+ * middle is in. What a blast leaves stays on it as state that counts down: stunned (it stops), slowed, burning (damage over time)
+ * and soaked (the next Volt move does more and uses the soak up). It draws a circle in its type's colour, a health bar once hurt,
+ * and a mark for each status. Creatures find it by its collider, whose data says where it is.
+ */
+export function Enemy({ id, kind, maxHp, onKilled, onLeaked, onDamaged }: EnemyProps) {
+  const info = ENEMIES[kind];
+  const s = useMutable({
+    dist: 0,
+    hp: maxHp,
+    stun: 0,
+    slow: 0,
+    slowFor: 0,
+    burn: 0,
+    burnFor: 0,
+    burnFrom: -1,
+    soak: 0,
+  });
+  const at = pathAt(PATH, s.dist);
+  const half = info.size / 2;
+
+  /** Take damage, reporting what was really taken (not past zero). */
+  const hurt = (from: number, amount: number) => {
+    const taken = Math.min(amount, Math.max(0, s.hp));
+    s.hp -= amount;
+    if (taken > 0) onDamaged(from, taken);
+  };
+
+  useUpdate((dt) => {
+    if (s.hp <= 0) {
+      onKilled(id);
+      return;
+    }
+    if (s.burnFor > 0) {
+      hurt(s.burnFrom, s.burn * Math.min(dt, s.burnFor));
+      s.burnFor = Math.max(0, s.burnFor - dt);
+    }
+    if (s.soak > 0) s.soak = Math.max(0, s.soak - dt);
+    if (s.stun > 0) {
+      s.stun = Math.max(0, s.stun - dt);
+      return;
+    }
+    const speed = info.speed * (s.slowFor > 0 ? 1 - s.slow : 1);
+    if (s.slowFor > 0) s.slowFor = Math.max(0, s.slowFor - dt);
+    const next = s.dist + speed * dt;
+    if (next >= PATH.length) {
+      onLeaked(id, kind);
+      return;
+    }
+    s.dist = next;
+  });
+
+  return (
+    <Entity x={at.x} y={at.y}>
+      <Shape kind="circle" width={info.size} height={info.size} x={-half} y={-half} color={TYPE_COLOR[info.type]} />
+      {s.stun > 0 && <Shape kind="rect" width={info.size + 2} height={1} x={-half - 1} y={-half - 2} color="#ffffff" />}
+      {s.soak > 0 && <Shape kind="rect" width={2} height={2} x={half} y={-half} color={TYPE_COLOR.tide} />}
+      {s.burnFor > 0 && <Shape kind="rect" width={2} height={2} x={-half - 2} y={-half} color={TYPE_COLOR.ember} />}
+      {s.slowFor > 0 && <Shape kind="rect" width={info.size} height={1} x={-half} y={half + 1} color="#9ee7ff" />}
+      {s.hp < maxHp && (
+        <Entity x={-6} y={-half - 4}>
+          <Shape kind="rect" width={12} height={2} color="#5a1f24" />
+          <Shape kind="rect" width={(12 * Math.max(s.hp, 0)) / maxHp} height={2} color="#7ad07a" />
+        </Entity>
+      )}
+      <Collider
+        width={info.size}
+        height={info.size}
+        x={-half}
+        y={-half}
+        tag="enemy"
+        layer="enemy"
+        hits={["blast"]}
+        data={{ id, dist: s.dist, x: at.x, y: at.y, hp: s.hp }}
+        onCollisionEnter={(other) => {
+          if (other.tag !== "blast") return;
+          const b = other.data;
+          if (b.target >= 0 ? b.target !== id : Math.hypot(b.x - at.x, b.y - at.y) > b.radius) return;
+          const factor = typeFactor(b.moveType, b.userType, info.type);
+          const soaked = b.soakedBonus > 0 && s.soak > 0;
+          if (soaked) s.soak = 0;
+          if (b.damage > 0) hurt(b.from, b.damage * factor * (soaked ? b.soakedBonus : 1));
+          if (b.burnFor > 0) {
+            s.burn = b.burn * factor;
+            s.burnFor = b.burnFor;
+            s.burnFrom = b.from;
+          }
+          if (b.stun > 0) s.stun = Math.max(s.stun, b.stun);
+          if (b.slowFor > 0) {
+            s.slow = Math.max(s.slowFor > 0 ? s.slow : 0, b.slow);
+            s.slowFor = Math.max(s.slowFor, b.slowFor);
+          }
+          if (b.soak > 0) s.soak = Math.max(s.soak, b.soak);
+        }}
+      />
+    </Entity>
+  );
+}
