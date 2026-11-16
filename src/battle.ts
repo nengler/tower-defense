@@ -3,7 +3,7 @@
  * wave, an `Enemy` walks and takes its hits.
  */
 import type { EnemyKind } from "./rules/enemies.ts";
-import type { MoveId } from "./rules/moves.ts";
+import type { MoveId, Status } from "./rules/moves.ts";
 import type { Type } from "./rules/types.ts";
 
 /** An enemy that has come: what `Play` knows of it. Where it is and how hurt it is are the `Enemy`'s own. */
@@ -33,8 +33,11 @@ export interface Blast {
   readonly slow: number;
   readonly slowFor: number;
   readonly soak: number;
-  /** Against a soaked enemy the damage is multiplied by this and the soak is used up; 0 for none. */
-  readonly soakedBonus: number;
+  /** A combo: against an enemy with status `bonusVs` the damage is multiplied by `bonus` ("" and 0 for none). */
+  readonly bonusVs: Status | "";
+  readonly bonus: number;
+  /** The combo uses the status up. */
+  readonly consumes: boolean;
 }
 
 /** A blast that only damages: for tests, and as the base of a move's. */
@@ -53,7 +56,9 @@ export const PLAIN_BLAST: Blast = {
   slow: 0,
   slowFor: 0,
   soak: 0,
-  soakedBonus: 0,
+  bonusVs: "",
+  bonus: 0,
+  consumes: false,
 };
 
 /** A buff landing: every ally whose middle is within `radius` of (x, y) is hasted. */

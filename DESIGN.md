@@ -65,7 +65,26 @@ A move has base values, scaled by the creature that uses it:
 | Soak | marks the enemy; Volt moves deal more to soaked enemies and use the soak up |
 | Haste | allies in reach use moves faster for a while (a buff) |
 
-**Combos** come from effects: one move leaves a status, another does more to an enemy that has it. The first is *soak* then *Volt*.
+**Combos** come from effects: one move leaves a status, another does more to an enemy that has it (×2).
+
+| Status | Left by | Cashed in by |
+| --- | --- | --- |
+| Soaked | Splash Jet, Undertow | Zap, Arc Storm (and the soak is used up) |
+| Burning | Flare Burst, Wildfire | Wildfire |
+| Stunned | Static Jolt, Quake | Boulder |
+| Slowed | Undertow, Thorn, Spore Cloud | Overgrowth |
+
+## Species
+
+| Species | Type | Learns (level) |
+| --- | --- | --- |
+| Emberling | Ember | Spark (1), Static Jolt (3), Rally (5), Flare Burst (7), Wildfire (10) |
+| Puddlepup | Tide | Splash Jet (1), Rally (3), Zap (5), Undertow (7) |
+| Voltkit | Volt | Zap (1), Static Jolt (3), Splash Jet (5), Arc Storm (7) |
+| Pebblet | Stone | Pebble (1), Boulder (3), Static Jolt (5), Quake (7) |
+| Sproutling | Bloom | Thorn (1), Rally (3), Spore Cloud (5), Overgrowth (7) |
+
+A milestone offers three of the five.
 
 **Targeting.** A damaging move aims at the enemy in reach that is furthest along the path.
 

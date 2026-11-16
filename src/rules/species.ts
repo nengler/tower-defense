@@ -34,7 +34,7 @@ export interface Species {
   readonly learns: readonly Learned[];
 }
 
-export type SpeciesId = "emberling" | "puddlepup" | "voltkit";
+export type SpeciesId = "emberling" | "puddlepup" | "voltkit" | "pebblet" | "sproutling";
 
 export const SPECIES: Readonly<Record<SpeciesId, Species>> = {
   emberling: {
@@ -48,6 +48,7 @@ export const SPECIES: Readonly<Record<SpeciesId, Species>> = {
       { move: "jolt", level: 3 },
       { move: "rally", level: 5 },
       { move: "flare", level: 7 },
+      { move: "wildfire", level: 10 },
     ],
   },
   puddlepup: {
@@ -76,9 +77,35 @@ export const SPECIES: Readonly<Record<SpeciesId, Species>> = {
       { move: "arc", level: 7 },
     ],
   },
+  pebblet: {
+    id: "pebblet",
+    name: "Pebblet",
+    type: "stone",
+    base: { atk: 5, spd: 1, rng: 2, cd: 2 },
+    growth: { atk: 1.5, spd: 0.5, rng: 0.5, cd: 0.5 },
+    learns: [
+      { move: "pebble", level: 1 },
+      { move: "boulder", level: 3 },
+      { move: "jolt", level: 5 },
+      { move: "quake", level: 7 },
+    ],
+  },
+  sproutling: {
+    id: "sproutling",
+    name: "Sproutling",
+    type: "bloom",
+    base: { atk: 2, spd: 3, rng: 4, cd: 4 },
+    growth: { atk: 0.5, spd: 0.5, rng: 1, cd: 1 },
+    learns: [
+      { move: "thorn", level: 1 },
+      { move: "rally", level: 3 },
+      { move: "spore", level: 5 },
+      { move: "overgrowth", level: 7 },
+    ],
+  },
 };
 
-export const SPECIES_IDS: readonly SpeciesId[] = ["emberling", "puddlepup", "voltkit"];
+export const SPECIES_IDS: readonly SpeciesId[] = ["emberling", "puddlepup", "voltkit", "pebblet", "sproutling"];
 
 /** Its stats at `level`: the base plus the growth of every level after the first, rounded down. */
 export function statsAt(species: SpeciesId, level: number): Stats {

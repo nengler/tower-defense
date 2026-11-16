@@ -67,10 +67,19 @@ test("stats start small and grow by their species' rates", () => {
   assert.equal(statsAt("emberling", 2).atk, 5);
 });
 
-test("every species learns more moves than it has slots, and every move it learns exists", () => {
+test("every type has a species, and every move is learned by some species", () => {
+  for (const t of TYPES) assert.ok(SPECIES_IDS.some((id) => SPECIES[id].type === t), t);
+  for (const m of Object.keys(MOVES)) assert.ok(SPECIES_IDS.some((id) => SPECIES[id].learns.some((l) => l.move === m)), m);
+});
+
+test("every species learns more moves than it has slots, its best area move after its slots are full, and every move it learns exists", () => {
   for (const id of SPECIES_IDS) {
     const learns = SPECIES[id].learns;
     assert.ok(learns.length > slotsFor(0), `${id} has a choice to make`);
+    assert.ok(
+      learns.slice(slotsFor(0)).some((l) => ["splash", "pulse"].includes(MOVES[l.move].shape)),
+      `${id} learns an area move only after its three slots are full`
+    );
     assert.equal(learns[0]!.level, 1);
     for (const l of learns) assert.ok(MOVES[l.move]);
   }

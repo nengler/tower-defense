@@ -32,7 +32,7 @@ export const useGame = createGameState(
     /** What offers are rolled from: each run starts from the next seed, so runs differ but a test can replay one. */
     seed: 1,
     /** Mastery points of each species: the one thing kept between runs (see `save.ts`). */
-    mastery: { emberling: 0, puddlepup: 0, voltkit: 0 } as Readonly<Record<SpeciesId, number>>,
+    mastery: { emberling: 0, puddlepup: 0, voltkit: 0, pebblet: 0, sproutling: 0 } as Readonly<Record<SpeciesId, number>>,
   },
   {
     /** A new run: no creatures, and the first milestone's offer. */
