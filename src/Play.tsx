@@ -10,6 +10,7 @@ import { Field } from "./Field.tsx";
 import { Offer } from "./Offer.tsx";
 import { useGame } from "./GameState.ts";
 import { Pause } from "./Pause.tsx";
+import { save } from "./save.ts";
 import { ENEMIES, hpOf, type EnemyKind } from "./rules/enemies.ts";
 import { centre } from "./rules/map.ts";
 import { creatureById, onField } from "./rules/roster.ts";
@@ -31,7 +32,7 @@ export function Play() {
   const team = useGame((s) => s.roster);
   const selectedId = useGame((s) => s.selected);
   const offering = useGame((s) => s.offer.length > 0);
-  const { pause, finish, gainXp, benchSelected, choose, deselect, milestone } = useGame.actions();
+  const { pause, finish, gainXp, benchSelected, choose, deselect, milestone, awardWave } = useGame.actions();
 
   const s = useMutable({
     lives: START_LIVES as number,
@@ -51,13 +52,16 @@ export function Play() {
   useUpdate((dt) => {
     if (s.lives <= 0) {
       finish(false, s.wave);
+      save.write();
       return;
     }
     if (!s.active) return;
     if (s.spawned >= spawns.length && s.enemies.length === 0) {
       s.active = false;
+      awardWave();
       if (s.wave >= WAVE_COUNT) finish(true, s.wave);
       else if (MILESTONES.includes(s.wave + 1)) milestone();
+      save.write();
       return;
     }
     s.clock += dt;

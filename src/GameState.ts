@@ -2,6 +2,7 @@ import { createGameState } from "@rge/runtime";
 
 import type { MoveId } from "./rules/moves.ts";
 import { bench, earn, equipMove, newCreature, place, raiseMove, standingAt, unequipMove, type Owned } from "./rules/roster.ts";
+import { MASTERY_PER_RUN, MASTERY_PER_WAVE, masteryLevel } from "./rules/progress.ts";
 import { pick } from "./rules/rng.ts";
 import { SPECIES_IDS, type SpeciesId } from "./rules/species.ts";
 import { OFFER_SIZE } from "./rules/waves.ts";
@@ -30,6 +31,8 @@ export const useGame = createGameState(
     offer: [] as readonly SpeciesId[],
     /** What offers are rolled from: each run starts from the next seed, so runs differ but a test can replay one. */
     seed: 1,
+    /** Mastery points of each species: the one thing kept between runs (see `save.ts`). */
+    mastery: { emberling: 0, puddlepup: 0, voltkit: 0 } as Readonly<Record<SpeciesId, number>>,
   },
   {
     /** A new run: no creatures, and the first milestone's offer. */
@@ -52,7 +55,7 @@ export const useGame = createGameState(
     /** Take a creature the offer has: it joins the roster on the bench, selected so a press on a tile places it. */
     takeOffer(s, species: SpeciesId) {
       if (!s.offer.includes(species)) return;
-      s.roster = [...s.roster, newCreature(s.nextCreature, species, 0)];
+      s.roster = [...s.roster, newCreature(s.nextCreature, species, masteryLevel(s.mastery[species]))];
       s.selected = s.nextCreature;
       s.nextCreature += 1;
       s.offer = [];
@@ -76,8 +79,17 @@ export const useGame = createGameState(
     toggleMusic(s) {
       s.music = !s.music;
     },
-    /** The run is over: `Play` says how it went, and the end screen shows. */
+    /** A wave ended: every creature on the field earns its species mastery. */
+    awardWave(s) {
+      const next = { ...s.mastery };
+      for (const c of s.roster) if (c.col >= 0) next[c.species] += MASTERY_PER_WAVE;
+      s.mastery = next;
+    },
+    /** The run is over: `Play` says how it went, every species in the roster earns mastery for the run, and the end screen shows. */
     finish(s, won: boolean, wave: number) {
+      const next = { ...s.mastery };
+      for (const species of new Set(s.roster.map((c) => c.species))) next[species] += MASTERY_PER_RUN;
+      s.mastery = next;
       s.screen = won ? "won" : "lost";
       s.endWave = wave;
       s.paused = false;

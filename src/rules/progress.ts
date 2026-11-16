@@ -56,3 +56,11 @@ export function learnLevel(species: SpeciesId, index: number, mastery: number): 
 export function knownAt(species: SpeciesId, level: number, mastery: number): MoveId[] {
   return SPECIES[species].learns.filter((_, i) => learnLevel(species, i, mastery) <= level).map((l) => l.move);
 }
+
+/** The points the next mastery level needs, or null at the top. */
+export function nextMasteryAt(points: number): number | null {
+  return MASTERY_AT.find((at) => points < at) ?? null;
+}
+
+/** What a mastery level gives, in a few words. */
+export const MASTERY_TEXT: readonly string[] = ["", "STARTS WITH 2 MOVES", "LEARNS MOVES SOONER", "A 4TH MOVE SLOT"];
