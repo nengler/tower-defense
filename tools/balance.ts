@@ -99,12 +99,15 @@ export function run(strategy: Strategy): Result {
     takeMilestone();
     t.world.flush();
     t.input("Space");
-    // Play a wave out: about 60 steps a second, checking the moves once a second.
-    for (let step = 0; step < 60 * 180; step++) {
-      t.step();
-      if (strategy.manage && step % 60 === 0) useGame.setState({ roster: manage(useGame.getState().roster) });
-      if (useGame.getState().screen !== "play" || !battle().active) break;
-    }
+    // Play a wave out (at most three minutes at 60 steps a second), checking the moves once a second.
+    let step = 0;
+    t.stepUntil(
+      () => {
+        if (strategy.manage && step++ % 60 === 0) useGame.setState({ roster: manage(useGame.getState().roster) });
+        return useGame.getState().screen !== "play" || !battle().active;
+      },
+      { maxSteps: 60 * 180, throws: false }
+    );
     const screen = useGame.getState().screen;
     if (screen === "lost") {
       if (process.env.BALANCE_DEBUG)

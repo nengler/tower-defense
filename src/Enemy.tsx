@@ -89,8 +89,16 @@ export function Enemy({ id, kind, maxHp, onKilled, onLeaked, onDamaged, onHit }:
 
   return (
     <Entity x={at.x} y={at.y}>
-      <AnimatedSprite sheet="enemies.png" frameWidth={12} frameHeight={12} animations={ENEMY_ANIMATIONS} animation={kind} originX={6} originY={6} />
-      {s.flash && <Shape kind="circle" width={info.size + 2} height={info.size + 2} x={-half - 1} y={-half - 1} color="#ffffffb0" />}
+      <AnimatedSprite
+        sheet="enemies.png"
+        frameWidth={12}
+        frameHeight={12}
+        animations={ENEMY_ANIMATIONS}
+        animation={kind}
+        originX={6}
+        originY={6}
+        flash={s.flash ? 0.8 : 0}
+      />
       {s.stun > 0 && <Shape kind="rect" width={info.size + 2} height={1} x={-half - 1} y={-half - 2} color="#ffffff" />}
       {s.soak > 0 && <Shape kind="rect" width={2} height={2} x={half} y={-half} color={TYPE_COLOR.tide} />}
       {s.burnFor > 0 && <Shape kind="rect" width={2} height={2} x={-half - 2} y={-half} color={TYPE_COLOR.ember} />}

@@ -15,6 +15,7 @@ import { Popup } from "./Popup.tsx";
 import { save } from "./save.ts";
 import { ENEMIES, hpOf, type EnemyKind } from "./rules/enemies.ts";
 import { MOVES } from "./rules/moves.ts";
+import { TYPE_COLOR } from "./rules/types.ts";
 import { centre } from "./rules/map.ts";
 import { creatureById, onField } from "./rules/roster.ts";
 import { Tiles } from "./Tiles.tsx";
@@ -97,8 +98,10 @@ export function Play() {
     s.spawned = 0;
   };
   const killed = (id: number, x: number, y: number) => {
+    // The puff in the fallen enemy's type colour.
+    const kind = s.enemies.find((e) => e.id === id)?.kind ?? "crawler";
     s.enemies = s.enemies.filter((e) => e.id !== id);
-    fx.burst("die", x, y);
+    fx.burst("die", x, y, { color: TYPE_COLOR[ENEMIES[kind].type] });
     sfx.play("die");
   };
   const leaked = (id: number, kind: EnemyKind) => {
