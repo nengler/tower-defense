@@ -1,5 +1,6 @@
 import { Game, Screen } from "@rge/runtime/jsx";
 
+import { End } from "./End.tsx";
 import { useGame } from "./GameState.ts";
 import { Play } from "./Play.tsx";
 import { Settings } from "./Settings.tsx";
@@ -15,6 +16,8 @@ export default function Main() {
         {screen === "title" && <Title name="tower-defense" />}
         {screen === "settings" && <Settings />}
         {screen === "play" && <Play />}
+        {screen === "won" && <End won />}
+        {screen === "lost" && <End won={false} />}
       </Screen>
     </Game>
   );

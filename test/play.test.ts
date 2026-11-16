@@ -2,26 +2,38 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { parseInputScript, runScript, type Player } from "@rge/player";
-import { findComponent } from "@rge/testing";
+import { findComponent, findComponents } from "@rge/testing";
 
 import { bindings, gameConfig } from "../game.ts";
 import { useGame } from "../src/GameState.ts";
 
-/** Which screen shows, whether play is paused, the volume, and whether the hero is in the world. */
-function seen(player: Player): { screen: string; paused: boolean; volume: number; hero: boolean } {
+/** Which screen shows, whether play is paused, the volume, and how many enemies are on the field. */
+function seen(player: Player): { screen: string; paused: boolean; volume: number; play: boolean; enemies: number } {
   const { screen, paused, volume } = useGame.getState();
-  return { screen, paused, volume, hero: findComponent("Hero", player.world.root) !== null };
+  return {
+    screen,
+    paused,
+    volume,
+    play: findComponent("Play", player.world.root) !== null,
+    enemies: findComponents("Enemy", player.world.root).length,
+  };
 }
 
-test("the title's Play starts the game, Escape pauses it, and the pause menu's Resume plays on", () => {
-  // Enter presses the focused button (Play); Escape opens the pause menu; Enter presses its first button (Resume).
+test("the title's Play starts the run, Escape pauses it, and the pause menu's Resume plays on", () => {
   const frames = parseInputScript("_*2, Enter, _*5, Escape, _*5, Enter, _*5", { bindings });
   const { states } = runScript(gameConfig, frames, seen);
-  assert.deepEqual(states[1], { screen: "title", paused: false, volume: 8, hero: false });
+  assert.equal(states[1]!.screen, "title");
   assert.equal(states[7]!.screen, "play");
-  assert.equal(states[7]!.hero, true);
+  assert.equal(states[7]!.play, true);
   assert.equal(states[13]!.paused, true, "Escape paused it");
   assert.equal(states[19]!.paused, false, "Resume played on");
+});
+
+test("Space starts the first wave, and its enemies come", () => {
+  const frames = parseInputScript("_*2, Enter, _*3, Space, _*120", { bindings });
+  const { states } = runScript(gameConfig, frames, seen);
+  assert.equal(states[5]!.enemies, 0, "nothing comes before the wave starts");
+  assert.ok(states[states.length - 1]!.enemies >= 2, "the first enemies are on the field after two seconds");
 });
 
 test("Settings: down to it, Enter, then right turns the volume up and Escape goes back", () => {

@@ -1,6 +1,6 @@
 import { createGameState } from "@rge/runtime";
 
-type Screen = "title" | "settings" | "play";
+type Screen = "title" | "settings" | "play" | "won" | "lost";
 
 /**
  * The game's state, in one place: which screen shows, whether play is paused, and the settings. A component reads one value with
@@ -14,6 +14,8 @@ export const useGame = createGameState(
     /** The volume, 0 to 10. */
     volume: 8,
     music: true,
+    /** The wave the last run reached, for the end screen. */
+    endWave: 0,
   },
   {
     start(s) {
@@ -38,6 +40,12 @@ export const useGame = createGameState(
     },
     toggleMusic(s) {
       s.music = !s.music;
+    },
+    /** The run is over: `Play` says how it went, and the end screen shows. */
+    finish(s, won: boolean, wave: number) {
+      s.screen = won ? "won" : "lost";
+      s.endWave = wave;
+      s.paused = false;
     },
   }
 );
