@@ -15,8 +15,8 @@ export interface EnemyKindInfo {
 }
 
 export const ENEMIES: Readonly<Record<EnemyKind, EnemyKindInfo>> = {
-  crawler: { name: "Crawler", type: "bloom", hp: 40, speed: 16, lives: 1, size: 8 },
-  skitter: { name: "Skitter", type: "tide", hp: 20, speed: 30, lives: 1, size: 6 },
+  crawler: { name: "Crawler", type: "bloom", hp: 40, speed: 24, lives: 1, size: 8 },
+  skitter: { name: "Skitter", type: "tide", hp: 20, speed: 40, lives: 1, size: 6 },
 };
 
 /** Each wave after the first adds this much to every enemy's hit points (0.35 = +35 %). */

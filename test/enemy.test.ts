@@ -125,3 +125,4 @@ describe("the battle", () => {
     assert.equal(s().active, false, "the wave is over");
   });
 });
+
