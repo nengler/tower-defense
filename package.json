@@ -1,0 +1,28 @@
+{
+  "name": "tower-defense",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "rge": {
+    "name": "tower-defense"
+  },
+  "dependencies": {
+    "@rge/native": "https://github.com/nengler/react-game-engine/releases/download/v0.1.1/rge-native-0.1.1.tgz",
+    "@rge/player": "https://github.com/nengler/react-game-engine/releases/download/v0.1.1/rge-player-0.1.1.tgz",
+    "@rge/player-node": "https://github.com/nengler/react-game-engine/releases/download/v0.1.1/rge-player-node-0.1.1.tgz",
+    "@rge/runtime": "https://github.com/nengler/react-game-engine/releases/download/v0.1.1/rge-runtime-0.1.1.tgz",
+    "@rge/compiler": "https://github.com/nengler/react-game-engine/releases/download/v0.1.1/rge-compiler-0.1.1.tgz"
+  },
+  "devDependencies": {
+    "@rge/cli": "https://github.com/nengler/react-game-engine/releases/download/v0.1.1/rge-cli-0.1.1.tgz",
+    "@rge/testing": "https://github.com/nengler/react-game-engine/releases/download/v0.1.1/rge-testing-0.1.1.tgz",
+    "@types/node": "^22.10.0",
+    "@rge/language-server": "https://github.com/nengler/react-game-engine/releases/download/v0.1.1/rge-language-server-0.1.1.tgz"
+  },
+  "scripts": {
+    "build": "rge build",
+    "dev": "rge dev",
+    "check": "rge check",
+    "package": "rge package"
+  }
+}
