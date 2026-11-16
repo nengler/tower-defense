@@ -47,7 +47,9 @@ describe("a creature", () => {
     assert.equal(e.blast.moveType, "volt");
     assert.equal(e.blast.userType, "volt");
     assert.ok(Math.abs(e.blast.damage - zap.damage) < 1e-9, "damage is the move's, scaled by the creature's attack");
-    assert.equal(e.blast.soakedBonus, 2);
+    assert.equal(e.blast.bonusVs, "soaked");
+    assert.equal(e.blast.bonus, 2);
+    assert.equal(e.blast.consumes, true);
   });
 
   it("does nothing with no enemy in reach, and waits with the move ready", () => {

@@ -2,6 +2,7 @@ import { Collider, Entity, Shape, useMutable, useUpdate } from "@rge/runtime/jsx
 
 import { afterArmor, ENEMIES, type EnemyKind } from "./rules/enemies.ts";
 import { PATH, pathAt } from "./rules/map.ts";
+import type { Status } from "./rules/moves.ts";
 import { TYPE_COLOR, typeFactor } from "./rules/types.ts";
 
 interface EnemyProps {
@@ -19,7 +20,8 @@ interface EnemyProps {
 /**
  * One enemy. It walks the path at its kind's speed, and takes what lands on it: a `blast` collider aimed at it, or an area its
  * middle is in. What a blast leaves stays on it as state that counts down: stunned (it stops), slowed, burning (damage over time)
- * and soaked (the next Volt move does more and uses the soak up). An armoured kind takes its armour off every hit (not a burn). It draws a circle in its type's colour, a health bar once hurt,
+ * and soaked. A combo move does more against an enemy with the status it plays off (soaked for Volt moves, burning, stunned,
+ * slowed), and a soak is used up by it. An armoured kind takes its armour off every hit (not a burn). It draws a circle in its type's colour, a health bar once hurt,
  * and a mark for each status. Creatures find it by its collider, whose data says where it is.
  */
 export function Enemy({ id, kind, maxHp, onKilled, onLeaked, onDamaged }: EnemyProps) {
@@ -43,6 +45,17 @@ export function Enemy({ id, kind, maxHp, onKilled, onLeaked, onDamaged }: EnemyP
     const taken = Math.min(amount, Math.max(0, s.hp));
     s.hp -= amount;
     if (taken > 0) onDamaged(from, taken);
+  };
+
+  /** Does it have this status now. */
+  const has = (status: Status) =>
+    status === "soaked" ? s.soak > 0 : status === "burning" ? s.burnFor > 0 : status === "stunned" ? s.stun > 0 : s.slowFor > 0;
+  /** Use a status up. */
+  const spend = (status: Status) => {
+    if (status === "soaked") s.soak = 0;
+    else if (status === "burning") s.burnFor = 0;
+    else if (status === "stunned") s.stun = 0;
+    else s.slowFor = 0;
   };
 
   useUpdate((dt) => {
@@ -97,9 +110,10 @@ export function Enemy({ id, kind, maxHp, onKilled, onLeaked, onDamaged }: EnemyP
           const b = other.data;
           if (b.target >= 0 ? b.target !== id : Math.hypot(b.x - at.x, b.y - at.y) > b.radius) return;
           const factor = typeFactor(b.moveType, b.userType, info.type);
-          const soaked = b.soakedBonus > 0 && s.soak > 0;
-          if (soaked) s.soak = 0;
-          if (b.damage > 0) hurt(b.from, afterArmor(kind, b.damage * factor * (soaked ? b.soakedBonus : 1)));
+          // A combo: more against an enemy with the status it plays off, which it may use up.
+          const combo = b.bonusVs !== "" && has(b.bonusVs);
+          if (combo && b.consumes) spend(b.bonusVs);
+          if (b.damage > 0) hurt(b.from, afterArmor(kind, b.damage * factor * (combo ? b.bonus : 1)));
           if (b.burnFor > 0) {
             s.burn = b.burn * factor;
             s.burnFor = b.burnFor;

@@ -42,7 +42,7 @@ test("the end of a run earns mastery once for each species the roster has", () =
 });
 
 test("a creature joins with its species' mastery: a second move at 1, a fourth slot at 3", () => {
-  useGame.setState({ mastery: { emberling: MASTERY_AT[0]!, puddlepup: 0, voltkit: MASTERY_AT[2]! } });
+  useGame.setState({ mastery: { emberling: MASTERY_AT[0]!, puddlepup: 0, voltkit: MASTERY_AT[2]!, pebblet: 0, sproutling: 0 } });
   takeFirst("emberling");
   const ember = useGame.getState().roster[0]!;
   assert.equal(ember.mastery, 1);
@@ -58,12 +58,12 @@ test("a creature joins with its species' mastery: a second move at 1, a fourth s
 test("mastery is saved and loaded back; a new run keeps it", () => {
   const storage = createMemoryStorage();
   setStorage(storage);
-  useGame.setState({ mastery: { emberling: 7, puddlepup: 0, voltkit: 31 } });
+  useGame.setState({ mastery: { emberling: 7, puddlepup: 0, voltkit: 31, pebblet: 0, sproutling: 0 } });
   assert.equal(save.write(), true);
   useGame.store.reset();
   assert.equal(useGame.getState().mastery.emberling, 0);
   assert.equal(save.load(), true);
-  assert.deepEqual(useGame.getState().mastery, { emberling: 7, puddlepup: 0, voltkit: 31 });
+  assert.deepEqual(useGame.getState().mastery, { emberling: 7, puddlepup: 0, voltkit: 31, pebblet: 0, sproutling: 0 });
   useGame.actions().start();
   assert.equal(useGame.getState().mastery.voltkit, 31, "a run starts fresh, but mastery stays");
 });
@@ -71,11 +71,11 @@ test("mastery is saved and loaded back; a new run keeps it", () => {
 test("a save missing a species, or with odd numbers in it, loads what makes sense and starts the rest at 0", () => {
   setStorage(createMemoryStorage({ mastery: JSON.stringify({ version: 1, data: { points: { emberling: 4.9, voltkit: -3 } } }) }));
   assert.equal(save.load(), true);
-  assert.deepEqual(useGame.getState().mastery, { emberling: 4, puddlepup: 0, voltkit: 0 });
+  assert.deepEqual(useGame.getState().mastery, { emberling: 4, puddlepup: 0, voltkit: 0, pebblet: 0, sproutling: 0 });
 });
 
 test("no save at all: nothing loads and mastery stays at 0", () => {
   setStorage(createMemoryStorage());
   assert.equal(save.load(), false);
-  assert.deepEqual(useGame.getState().mastery, { emberling: 0, puddlepup: 0, voltkit: 0 });
+  assert.deepEqual(useGame.getState().mastery, { emberling: 0, puddlepup: 0, voltkit: 0, pebblet: 0, sproutling: 0 });
 });

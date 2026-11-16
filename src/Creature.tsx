@@ -2,7 +2,7 @@ import { Collider, Entity, Shape, useBody, useMutable, useUpdate } from "@rge/ru
 
 import { NO_AURA, PLAIN_BLAST, type Effect } from "./battle.ts";
 import { pipFill, withCooldown } from "./rules/draw.ts";
-import { MOVES, type MoveId } from "./rules/moves.ts";
+import { comboOf, MOVES, type MoveId } from "./rules/moves.ts";
 import { scaled } from "./rules/scaled.ts";
 import { SPECIES, statsAt, type SpeciesId } from "./rules/species.ts";
 import { anyWithin, pickTarget } from "./rules/targeting.ts";
@@ -93,7 +93,7 @@ export function Creature({ id, species, level, equipped, x, y, selected, onUse }
       slow: m.effects.slow ?? 0,
       slowFor: m.effects.slowFor ?? 0,
       soak: m.effects.soak ?? 0,
-      soakedBonus: m.effects.soakedBonus ?? 0,
+      ...comboOf(move),
     };
     onUse({ kind: "blast", move, fromX: x, fromY: y, x: blast.x, y: blast.y, radius: blast.radius, blast, aura: NO_AURA });
   };

@@ -87,11 +87,29 @@ describe("an enemy", () => {
     const { t } = enemy();
     t.collide("enemy", blast({ soak: 3 }));
     assert.equal(fields(t).soak, 3);
-    t.collide("enemy", blast({ damage: 10, soakedBonus: 2 }));
+    t.collide("enemy", blast({ damage: 10, bonusVs: "soaked", bonus: 2, consumes: true }));
     assert.equal(fields(t).hp, 980);
     assert.equal(fields(t).soak, 0);
-    t.collide("enemy", blast({ damage: 10, soakedBonus: 2 }));
+    t.collide("enemy", blast({ damage: 10, bonusVs: "soaked", bonus: 2, consumes: true }));
     assert.equal(fields(t).hp, 970, "no soak left: normal damage");
+  });
+
+  it("combos: more against a burning, stunned or slowed enemy; only a soak is used up", () => {
+    for (const [status, setup] of [
+      ["burning", { burn: 1, burnFor: 5 }],
+      ["stunned", { stun: 5 }],
+      ["slowed", { slow: 0.3, slowFor: 5 }],
+    ] as const) {
+      const { t } = enemy();
+      t.collide("enemy", blast({ damage: 10, bonusVs: status, bonus: 2 }));
+      assert.equal(fields(t).hp, 990, `${status}: no bonus before the status`);
+      t.collide("enemy", blast(setup));
+      const before = fields(t).hp!;
+      t.collide("enemy", blast({ damage: 10, bonusVs: status, bonus: 2 }));
+      assert.equal(before - fields(t).hp!, 20, `${status}: twice the damage`);
+      t.collide("enemy", blast({ damage: 10, bonusVs: status, bonus: 2 }));
+      assert.equal(before - fields(t).hp!, 40, `${status}: the status stays`);
+    }
   });
 
   it("never reports more damage than it had left, and says it died the step after", () => {
