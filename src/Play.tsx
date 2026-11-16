@@ -1,6 +1,7 @@
 import { Entity, Hud, useInput, useMutable, useUpdate } from "@rge/runtime/jsx";
 
 import { Bar } from "./Bar.tsx";
+import { Card } from "./Card.tsx";
 import type { Effect as Used, Foe, Placed } from "./battle.ts";
 import { Creature } from "./Creature.tsx";
 import { Effect } from "./Effect.tsx";
@@ -10,7 +11,7 @@ import { useGame } from "./GameState.ts";
 import { Pause } from "./Pause.tsx";
 import { ENEMIES, hpOf, type EnemyKind } from "./rules/enemies.ts";
 import { centre } from "./rules/map.ts";
-import { onField } from "./rules/roster.ts";
+import { creatureById, onField } from "./rules/roster.ts";
 import { Tiles } from "./Tiles.tsx";
 import { spawnsOf, WAVE_COUNT } from "./rules/waves.ts";
 
@@ -22,13 +23,13 @@ export const START_LIVES = 10;
  * landing, which it draws as components that each keep their own state; the creatures on the field come from the roster. An enemy
  * reports up when it dies, gets through or takes damage (its attacker's XP); a creature when a move lands. Pressing a tile selects
  * the creature on it or puts the selected one there; Backspace benches the selected one, and 1 to 9 select a creature by its place in the bar. The bar's button (or Space) starts the next
- * wave; Escape pauses.
+ * wave. The selected creature's card shows over the field (its moves can be changed at any time); Escape closes it, or pauses.
  */
 export function Play() {
   const paused = useGame((s) => s.paused);
-  const roster = useGame((s) => s.roster);
-  const selected = useGame((s) => s.selected);
-  const { pause, finish, gainXp, benchSelected, choose } = useGame.actions();
+  const team = useGame((s) => s.roster);
+  const selectedId = useGame((s) => s.selected);
+  const { pause, finish, gainXp, benchSelected, choose, deselect } = useGame.actions();
 
   const s = useMutable({
     lives: START_LIVES as number,
@@ -65,7 +66,11 @@ export function Play() {
     }
   });
   useInput((input) => {
-    if (input.pressed("Escape")) pause();
+    // Escape closes the card first, and pauses when there is none.
+    if (input.pressed("Escape")) {
+      if (selectedId >= 0) deselect();
+      else pause();
+    }
     if (input.pressed("Backspace")) benchSelected();
     for (let n = 1; n <= 9; n++) if (input.pressed(`${n}`)) choose(n - 1);
   });
@@ -99,7 +104,7 @@ export function Play() {
     <Entity>
       <Field />
       <Tiles />
-      {onField(roster).map((c) => (
+      {onField(team).map((c) => (
         <Creature
           key={c.id}
           id={c.id}
@@ -108,7 +113,7 @@ export function Play() {
           equipped={c.equipped}
           x={centre(c.col, c.row).x}
           y={centre(c.col, c.row).y}
-          selected={c.id === selected}
+          selected={c.id === selectedId}
           onUse={used}
         />
       ))}
@@ -120,6 +125,7 @@ export function Play() {
       ))}
       <Hud>
         <Bar lives={s.lives} wave={s.wave} active={s.active} onStartWave={startWave} />
+        {selectedId >= 0 && creatureById(team, selectedId) !== undefined && <Card creature={creatureById(team, selectedId)!} />}
         {paused && <Pause />}
       </Hud>
     </Entity>

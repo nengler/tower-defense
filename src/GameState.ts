@@ -1,6 +1,7 @@
 import { createGameState } from "@rge/runtime";
 
-import { bench, earn, newCreature, place, standingAt, type Owned } from "./rules/roster.ts";
+import type { MoveId } from "./rules/moves.ts";
+import { bench, earn, equipMove, newCreature, place, raiseMove, standingAt, unequipMove, type Owned } from "./rules/roster.ts";
 import { SPECIES_IDS } from "./rules/species.ts";
 
 type Screen = "title" | "settings" | "play" | "won" | "lost";
@@ -82,6 +83,21 @@ export const useGame = createGameState(
     /** Take the selected creature off the field. */
     benchSelected(s) {
       if (s.selected >= 0) s.roster = bench(s.roster, s.selected);
+    },
+    /** Equip a move the selected creature knows into a free slot. */
+    equip(s, move: MoveId) {
+      s.roster = equipMove(s.roster, s.selected, move);
+    },
+    /** Take a move out of the selected creature's slots. */
+    unequip(s, move: MoveId) {
+      s.roster = unequipMove(s.roster, s.selected, move);
+    },
+    /** Move one of the selected creature's moves a place earlier in the order it tries them. */
+    raise(s, move: MoveId) {
+      s.roster = raiseMove(s.roster, s.selected, move);
+    },
+    deselect(s) {
+      s.selected = -1;
     },
     /** A creature dealt damage: it earns that much XP. */
     gainXp(s, id: number, amount: number) {

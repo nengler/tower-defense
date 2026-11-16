@@ -19,14 +19,15 @@ function seen(player: Player): { screen: string; paused: boolean; volume: number
   };
 }
 
-test("the title's Play starts the run, Escape pauses it, and the pause menu's Resume plays on", () => {
-  const frames = parseInputScript("_*2, Enter, _*5, Escape, _*5, Enter, _*5", { bindings });
+test("the title's Play starts the run; Escape closes the selected creature's card, then pauses; Resume plays on", () => {
+  const frames = parseInputScript("_*2, Enter, _*5, Escape, _*2, Escape, _*5, Enter, _*5", { bindings });
   const { states } = runScript(gameConfig, frames, seen);
   assert.equal(states[1]!.screen, "title");
   assert.equal(states[7]!.screen, "play");
   assert.equal(states[7]!.play, true);
-  assert.equal(states[13]!.paused, true, "Escape paused it");
-  assert.equal(states[19]!.paused, false, "Resume played on");
+  assert.equal(states[10]!.paused, false, "the first Escape closed the card");
+  assert.equal(states[16]!.paused, true, "the second paused");
+  assert.equal(states[states.length - 1]!.paused, false, "Resume played on");
 });
 
 test("Space starts the first wave, and its enemies come", () => {

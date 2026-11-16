@@ -73,3 +73,39 @@ export function earn(roster: readonly Owned[], id: number, amount: number): read
     return { ...c, level: leveled.level, xp: leveled.xp, known: [...c.known, ...learned], equipped };
   });
 }
+
+/** Change one creature. */
+function update(roster: readonly Owned[], id: number, change: (c: Owned) => Owned): readonly Owned[] {
+  return roster.map((c) => (c.id === id ? change(c) : c));
+}
+
+/** Equip a move it knows into a free slot, at the end of the order. Unchanged if every slot is full or it is already equipped. */
+export function equipMove(roster: readonly Owned[], id: number, move: MoveId): readonly Owned[] {
+  return update(roster, id, (c) =>
+    c.known.includes(move) && !c.equipped.includes(move) && c.equipped.length < slotsFor(c.mastery)
+      ? { ...c, equipped: [...c.equipped, move] }
+      : c
+  );
+}
+
+/** Take a move out of its slots (it stays known). */
+export function unequipMove(roster: readonly Owned[], id: number, move: MoveId): readonly Owned[] {
+  return update(roster, id, (c) => ({ ...c, equipped: c.equipped.filter((m) => m !== move) }));
+}
+
+/** Move an equipped move one place earlier in the order it is tried in. */
+export function raiseMove(roster: readonly Owned[], id: number, move: MoveId): readonly Owned[] {
+  return update(roster, id, (c) => {
+    const i = c.equipped.indexOf(move);
+    if (i <= 0) return c;
+    const order = [...c.equipped];
+    order[i] = order[i - 1] as MoveId;
+    order[i - 1] = move;
+    return { ...c, equipped: order };
+  });
+}
+
+/** The creature with this id, if the roster has it. */
+export function creatureById(roster: readonly Owned[], id: number): Owned | undefined {
+  return roster.find((c) => c.id === id);
+}
