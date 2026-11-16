@@ -51,7 +51,7 @@ export const SPECIES: Readonly<Record<SpeciesId, Species>> = {
     id: "puddlepup",
     name: "Puddlepup",
     type: "tide",
-    base: { atk: 2, spd: 3, rng: 4, cd: 3 },
+    base: { atk: 3, spd: 3, rng: 4, cd: 3 },
     growth: { atk: 0.5, spd: 0.5, rng: 1, cd: 1 },
     learns: [
       { move: "jet", level: 1 },

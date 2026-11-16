@@ -16,34 +16,41 @@ function play(script: string) {
   return runScript(gameConfig, frames, (player: Player) => {
     const play = findComponent("Play", player.world.root);
     const battle = play === null ? null : ((play as unknown as { $s_lives: number; $s_wave: number; $s_active: boolean }));
-    const { screen: shown, roster } = useGame.getState();
+    const { screen: shown, roster, offer } = useGame.getState();
     return {
       screen: shown,
       lives: battle?.$s_lives ?? -1,
       wave: battle?.$s_wave ?? -1,
       active: battle?.$s_active ?? false,
       xp: roster.map((c) => c.xp + c.level * 1000),
+      species: roster.map((c) => c.species),
       placed: roster.filter((c) => c.col >= 0).length,
+      offer: offer.length,
     };
   });
 }
 
-test("the game itself: three creatures placed by clicks hold wave 1 far better than nobody, and earn XP", () => {
-  // Title → Play. Creature 1 is selected at the start; 2 and 3 by their keys. Each goes beside the path's first bend.
-  const place = `first, _, ${tile(3, 2)}, _, second, _, ${tile(5, 2)}, _, third, _, ${tile(5, 4)}, _`;
-  const { states } = play(`_*2, Enter, _*3, ${place}, Space, _*2100`);
+test("the game itself: the creature taken at the start, placed by a click, holds most of wave 1 and earns XP", () => {
+  const { states } = play(`_*2, Enter, _*3, Enter, _*2, ${tile(3, 2)}, _, Space, _*2100`);
   const last = states[states.length - 1]!;
-  assert.equal(last.placed, 3);
+  assert.equal(last.placed, 1);
   assert.equal(last.wave, 1);
   assert.equal(last.active, false, "the wave is over");
-  assert.ok(last.lives >= 8, `lives ${last.lives}`);
-  assert.ok(
-    last.xp.every((x) => x > 1000),
-    `every creature earned XP: ${last.xp.join(", ")}`
-  );
+  assert.ok(last.lives >= 7, `lives ${last.lives}`);
+  assert.ok(last.xp[0]! > 1000, "it earned XP");
+});
+
+test("a milestone comes before wave 3: after wave 2 a second creature is offered, and Space waits for it", () => {
+  const wave = `Space, _*2100`;
+  // The second creature offered (right, then Enter): the Emberling, which holds the first two waves alone.
+  const { states } = play(`_*2, Enter, _*5, right, _, Enter, _*2, ${tile(3, 2)}, _, ${wave}, ${wave}, Space, _*5`);
+  const last = states[states.length - 1]!;
+  assert.equal(last.screen, "play");
+  assert.equal(last.wave, 2, "wave 3 did not start");
+  assert.equal(last.offer, 3);
 });
 
 test("the same wave with nobody on the field costs a life per enemy", () => {
-  const { states } = play(`_*2, Enter, _*3, Space, _*2100`);
-  assert.equal(states[states.length - 1]!.lives, 4);
+  const { states } = play(`_*2, Enter, _*3, Enter, _*3, Space, _*2100`);
+  assert.equal(states[states.length - 1]!.lives, 5);
 });

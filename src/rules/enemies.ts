@@ -15,7 +15,7 @@ export interface EnemyKindInfo {
 }
 
 export const ENEMIES: Readonly<Record<EnemyKind, EnemyKindInfo>> = {
-  crawler: { name: "Crawler", type: "bloom", hp: 40, speed: 24, lives: 1, size: 8 },
+  crawler: { name: "Crawler", type: "bloom", hp: 34, speed: 24, lives: 1, size: 8 },
   skitter: { name: "Skitter", type: "tide", hp: 20, speed: 40, lives: 1, size: 6 },
 };
 

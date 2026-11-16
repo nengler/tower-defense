@@ -10,7 +10,10 @@ export interface Group {
 
 /** The first version's five waves. */
 export const WAVES: readonly (readonly Group[])[] = [
-  [{ kind: "crawler", count: 6, gap: 1.6, at: 0 }],
+  [
+    { kind: "crawler", count: 3, gap: 2, at: 0 },
+    { kind: "skitter", count: 2, gap: 2, at: 6 },
+  ],
   [
     { kind: "crawler", count: 6, gap: 1.4, at: 0 },
     { kind: "skitter", count: 4, gap: 1.0, at: 5 },
