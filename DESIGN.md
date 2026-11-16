@@ -84,8 +84,9 @@ Enemies have types too, so the next wave's types are a reason to field one creat
 
 ## Mastery
 
-Mastery is the only thing a run keeps. Each **species** has a mastery level, raised by playing that species (waves it was on the
-field for, and runs it finished). Mastery adds **options**, not raw power:
+Mastery is the only thing a run keeps. Each **species** has mastery points: 1 for each creature of it on the field when a wave
+ends, and 3 when a run ends with it in the roster (won or lost). 5, 15 and 30 points are mastery levels 1, 2 and 3. A creature
+joins a run with its species' level then. Mastery adds **options**, not raw power:
 
 | Level | Benefit |
 | --- | --- |
@@ -93,7 +94,8 @@ field for, and runs it finished). Mastery adds **options**, not raw power:
 | 2 | Its later moves are learned two levels earlier. |
 | 3 | A fourth move slot. |
 
-It is saved on the player's machine and shown on the creature's card.
+It is saved on the player's machine (written at the end of each wave and run), and shown on the offer, on the creature's card
+and on the end screen.
 
 ## Screen
 

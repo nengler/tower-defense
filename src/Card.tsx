@@ -55,6 +55,7 @@ export function Card({ creature }: CardProps) {
       </Flex>
       <Text color="#a7b0c8">{`ATK ${stats.atk} SPD ${stats.spd}`}</Text>
       <Text color="#a7b0c8">{`RNG ${stats.rng} CD ${stats.cd}`}</Text>
+      {creature.mastery > 0 && <Text color="#f0d84a">{`MASTERY ${creature.mastery}`}</Text>}
       <Text color="#6a7088">{`MOVES ${creature.equipped.length}/${slots}`}</Text>
       {creature.equipped.map((move, i) => (
         <Flex key={move} direction="row" gap={2} width="grow" alignItems="center">
