@@ -59,6 +59,8 @@ export function Creature({ id, species, level, form, terrain, equipped, x, y, se
     target: -1,
     haste: 0,
     hasteFor: 0,
+    /** The creature whose haste is on it (itself, for its own buff): it earns a share of the XP this one earns while hasted. */
+    hasteFrom: -1,
     /** Where it stood last step, and the seconds left of its settling (placed or moved). */
     atX: x,
     atY: y,
@@ -71,6 +73,8 @@ export function Creature({ id, species, level, form, terrain, equipped, x, y, se
   const enemies = () => nearby("enemy", x, y, LOOK).map((e) => e.data);
   /** A haste landing on it: the stronger of this and one still running, for the longer time. */
   const hasten = (a: Aura) => {
+    // The newest buffer gets the credit.
+    s.hasteFrom = a.from;
     s.haste = Math.max(s.hasteFor > 0 ? s.haste : 0, a.haste);
     s.hasteFor = Math.max(s.hasteFor, a.hasteFor);
   };
@@ -92,7 +96,7 @@ export function Creature({ id, species, level, form, terrain, equipped, x, y, se
     const m = MOVES[move];
     const u = use(move);
     if (m.shape === "buff") {
-      const aura = { haste: m.effects.haste ?? 0, hasteFor: m.effects.hasteFor ?? 0 };
+      const aura = { from: id, haste: m.effects.haste ?? 0, hasteFor: m.effects.hasteFor ?? 0 };
       // `nearby` leaves out its own collider: it takes its own buff here.
       hasten(aura);
       for (const ally of nearby("ally", x, y, u.radius)) if (Math.hypot(ally.data.x - x, ally.data.y - y) <= u.radius) send("ally", ally, aura);
@@ -107,6 +111,8 @@ export function Creature({ id, species, level, form, terrain, equipped, x, y, se
     const blast = {
       ...PLAIN_BLAST,
       from: id,
+      // An ally's haste on it earns that ally a share of the XP for what this deals.
+      helper: s.hasteFor > 0 && s.hasteFrom !== id ? s.hasteFrom : -1,
       moveType: m.type,
       userType: type,
       damage: u.damage,

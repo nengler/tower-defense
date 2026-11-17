@@ -48,9 +48,12 @@ export const centre = (col: number, row: number): Point => ({ x: col * TILE + TI
 /** The tile a point is on, as `col,row`. */
 export const tileKey = (col: number, row: number): string => `${col},${row}`;
 
-export type MapId = "meadow" | "riverbend" | "gauntlet";
+export type MapId = "meadow" | "riverbend" | "gauntlet" | "glowmire";
 
-export const MAP_IDS: readonly MapId[] = ["meadow", "riverbend", "gauntlet"];
+export const MAP_IDS: readonly MapId[] = ["meadow", "riverbend", "gauntlet", "glowmire"];
+
+/** A tile as `[col, row]`. */
+export type Tile = readonly [number, number];
 
 /**
  * A map: its path and its terrain. Terrain tiles are tiles a creature may stand on; one standing on its own type's terrain is
@@ -66,6 +69,34 @@ export interface GameMap {
   readonly pathTiles: ReadonlySet<string>;
   /** The terrain tiles, `col,row` to the type they attune. */
   readonly terrain: ReadonlyMap<string, Type>;
+  /** Night: drawn under a light map, with its own shaders (`Night.tsx`). */
+  readonly night: boolean;
+  /**
+   * Enemies here gain this much more hit points each wave, on top of the curve every map has (1.06 = 6 % more each wave): a longer
+   * path gives the creatures more time, so its later waves are tougher. 1 for none.
+   */
+  readonly toughness: number;
+  /** Water, as `col,row`: no creature stands there. */
+  readonly water: ReadonlySet<string>;
+  /** Lanterns and glow-mushrooms: lights standing on a tile, which no creature can then take. */
+  readonly lanterns: readonly Tile[];
+  readonly mushrooms: readonly Tile[];
+}
+
+/** What else a map has, beyond its path and terrain. */
+interface Extra {
+  readonly night?: boolean;
+  readonly toughness?: number;
+  readonly water?: readonly string[];
+  readonly lanterns?: readonly Tile[];
+  readonly mushrooms?: readonly Tile[];
+}
+
+/** Every tile in the rectangle from (c0, r0) to (c1, r1), inclusive, as `col,row`. */
+function block(c0: number, r0: number, c1: number, r1: number): string[] {
+  const tiles: string[] = [];
+  for (let col = c0; col <= c1; col++) for (let row = r0; row <= r1; row++) tiles.push(tileKey(col, row));
+  return tiles;
 }
 
 /** What standing on its own type's terrain adds to each of a creature's stats. */
@@ -88,27 +119,43 @@ function tilesOf(corners: readonly (readonly [number, number])[]): ReadonlySet<s
 }
 
 /**
- * A map from its corners (as tiles, from just off the left edge to just off the right) and its terrain (tiles by type). Throws if a
- * terrain tile is on the path or off the grid, so a typo in a table is caught when the module loads.
+ * A map from its corners (as tiles, from just off the left edge to just off the right), its terrain (tiles by type) and anything
+ * else it has. Throws if a terrain tile is on the path, in the water, under a lantern or mushroom, or off the grid, so a typo in a
+ * table is caught when the module loads.
  */
 function makeMap(
   id: MapId,
   name: string,
   text: string,
   corners: readonly (readonly [number, number])[],
-  terrain: Readonly<Record<Type, readonly (readonly [number, number])[]>>
+  terrain: Readonly<Record<Type, readonly (readonly [number, number])[]>>,
+  extra: Extra = {}
 ): GameMap {
   const pathTiles = tilesOf(corners);
+  const water = new Set(extra.water ?? []);
+  const props = new Set([...(extra.lanterns ?? []), ...(extra.mushrooms ?? [])].map(([col, row]) => tileKey(col, row)));
   const tiles = new Map<string, Type>();
   for (const [type, spots] of Object.entries(terrain) as [Type, readonly (readonly [number, number])[]][]) {
     for (const [col, row] of spots) {
       const key = tileKey(col, row);
-      if (pathTiles.has(key) || col < 0 || col >= COLS || row < 0 || row >= ROWS || tiles.has(key))
-        throw new Error(`${id}: terrain at ${key} is on the path, off the grid or twice`);
+      if (pathTiles.has(key) || water.has(key) || props.has(key) || col < 0 || col >= COLS || row < 0 || row >= ROWS || tiles.has(key))
+        throw new Error(`${id}: terrain at ${key} is on the path, in the water, under a light, off the grid or twice`);
       tiles.set(key, type);
     }
   }
-  return { id, name, text, path: makePath(corners.map(([col, row]) => centre(col, row))), pathTiles, terrain: tiles };
+  return {
+    id,
+    name,
+    text,
+    path: makePath(corners.map(([col, row]) => centre(col, row))),
+    pathTiles,
+    terrain: tiles,
+    night: extra.night ?? false,
+    toughness: extra.toughness ?? 1,
+    water,
+    lanterns: extra.lanterns ?? [],
+    mushrooms: extra.mushrooms ?? [],
+  };
 }
 
 export const MAPS: Readonly<Record<MapId, GameMap>> = {
@@ -219,7 +266,84 @@ export const MAPS: Readonly<Record<MapId, GameMap>> = {
       ],
     }
   ),
+  /**
+   * A bog at night: a longer path that winds through three bends, but ponds fill the hollows inside them, and lanterns and
+   * mushrooms take more tiles, so the spots beside two stretches of path are few.
+   */
+  glowmire: makeMap(
+    "glowmire",
+    "Glowmire",
+    "A bog at night: a long path, few spots.",
+    [
+      [-1, 4],
+      [2, 4],
+      [2, 1],
+      [6, 1],
+      [6, 7],
+      [10, 7],
+      [10, 2],
+      [14, 2],
+      [14, 6],
+      [17, 6],
+      [17, 3],
+      [20, 3],
+    ],
+    {
+      tide: [
+        [8, 3],
+        [15, 5],
+      ],
+      volt: [
+        [12, 4],
+        [1, 2],
+      ],
+      stone: [
+        [5, 5],
+        [16, 7],
+      ],
+      ember: [
+        [4, 2],
+        [11, 3],
+      ],
+      bloom: [
+        [7, 2],
+        [16, 2],
+      ],
+    },
+    {
+      night: true,
+      toughness: 1.06,
+      water: [...block(7, 4, 9, 6), ...block(11, 5, 13, 8), ...block(0, 6, 3, 8), ...block(15, 0, 19, 1), "18,2"],
+      lanterns: [
+        [3, 3],
+        [9, 2],
+        [13, 3],
+        [18, 7],
+      ],
+      mushrooms: [
+        [0, 0],
+        [5, 8],
+        [16, 4],
+        [4, 6],
+        [8, 8],
+      ],
+    }
+  ),
 };
+
+/** What an enemy's hit points are multiplied by on this map in this wave (counted from 1). */
+export function toughnessAt(map: MapId, wave: number): number {
+  return mapOf(map).toughness ** Math.max(0, wave - 1);
+}
+
+/** Can a creature stand on this tile: on the grid, not path or water, no lantern or mushroom on it. */
+export function isOpen(map: MapId, col: number, row: number): boolean {
+  if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return false;
+  const m = mapOf(map);
+  const key = tileKey(col, row);
+  if (m.pathTiles.has(key) || m.water.has(key)) return false;
+  return !m.lanterns.some(([c, r]) => c === col && r === row) && !m.mushrooms.some(([c, r]) => c === col && r === row);
+}
 
 /** The map with this id. */
 export function mapOf(id: MapId): GameMap {

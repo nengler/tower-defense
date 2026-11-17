@@ -18,7 +18,7 @@ test("the balance table is what it was: a change to a number in the rules shows 
 });
 
 test("a skilled run wins on every map, but not for free: the last three waves cost more than the first seven", () => {
-  for (const name of ["skilled", "skilled, riverbend", "skilled, gauntlet"]) {
+  for (const name of ["skilled", "skilled, riverbend", "skilled, gauntlet", "skilled, glowmire"]) {
     const r = result[name]!;
     assert.equal(r.won, true, name);
     assert.ok(r.lives.at(-1)! < 10, `${name} loses lives`);

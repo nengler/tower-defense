@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { MAPS } from "../src/rules/map.ts";
-import { bench, canPlace, earn, evolve, FIELD_LIMIT, learn, newCreature, onField, place as placeOn, type Owned } from "../src/rules/roster.ts";
+import { bench, canPlace, swap, earn, evolve, FIELD_LIMIT, learn, newCreature, onField, place as placeOn, type Owned } from "../src/rules/roster.ts";
 import { EVOLVE_AT } from "../src/rules/species.ts";
 import { xpToNext } from "../src/rules/progress.ts";
 
@@ -90,4 +90,29 @@ test("at level 10, with every step behind it, it may evolve: a form, and the for
   assert.deepEqual(r[0]!.equipped, ["thunderclap", "jolt", "arc"]);
   assert.equal(r[0]!.choice, null);
   assert.equal(earn(r, 1, 1e6)[0]!.choice, null, "it evolves once");
+});
+
+test("swap: two on the field trade tiles; one from the bench takes the other's tile and benches it", () => {
+  let r = team(3);
+  r = placeOn(r, "meadow", 1, 0, 0);
+  r = placeOn(r, "meadow", 2, 0, 8);
+  r = swap(r, 1, 2);
+  assert.deepEqual([r[0]!.col, r[0]!.row, r[1]!.col, r[1]!.row], [0, 8, 0, 0]);
+  r = swap(r, 3, 1);
+  assert.deepEqual([r[2]!.col, r[2]!.row], [0, 8]);
+  assert.equal(r[0]!.col, -1, "the one it replaced is on the bench");
+  assert.equal(onField(r).length, 2);
+  assert.equal(swap(r, 1, 1), r);
+});
+
+test("on Glowmire, water, lanterns and mushrooms take tiles too", () => {
+  const bog = MAPS.glowmire;
+  const r = team(1);
+  const [water] = [...bog.water];
+  const [wc, wr] = water!.split(",").map(Number) as [number, number];
+  assert.equal(canPlace(r, "glowmire", 1, wc, wr), false, "not in the water");
+  assert.equal(canPlace(r, "glowmire", 1, bog.lanterns[0]![0], bog.lanterns[0]![1]), false, "not on a lantern");
+  assert.equal(canPlace(r, "glowmire", 1, bog.mushrooms[0]![0], bog.mushrooms[0]![1]), false, "not on a mushroom");
+  assert.equal(canPlace(r, "glowmire", 1, 4, 2), true, "but beside the path, yes");
+  assert.equal(canPlace(r, "meadow", 1, wc, wr), true, "the same tile on the Meadow is grass");
 });

@@ -1,4 +1,4 @@
-import { Entity, Hud, ParticleLayer, useInput, useMutable, useUpdate } from "@tsengine/runtime/jsx";
+import { Entity, Flex, Hud, ParticleLayer, Text, useInput, useMutable, useUpdate } from "@tsengine/runtime/jsx";
 
 import { Banner } from "./Banner.tsx";
 import { Bar } from "./Bar.tsx";
@@ -10,6 +10,7 @@ import { fx, sfx } from "./effects.ts";
 import { Enemy } from "./Enemy.tsx";
 import { Field } from "./Field.tsx";
 import { Mark } from "./Mark.tsx";
+import { Night } from "./Night.tsx";
 import { Offer } from "./Offer.tsx";
 import { useGame } from "./GameState.ts";
 import { Pause } from "./Pause.tsx";
@@ -17,13 +18,15 @@ import { Popup } from "./Popup.tsx";
 import { Prompt } from "./Prompt.tsx";
 import { save } from "./save.ts";
 import { ENEMIES, hpOf, type EnemyKind } from "./rules/enemies.ts";
-import { centre, mapOf, TERRAIN_BONUS, TILE, terrainAt } from "./rules/map.ts";
+import { BUFF_XP_SHARE } from "./rules/progress.ts";
+import { centre, mapOf, TERRAIN_BONUS, TILE, terrainAt, toughnessAt } from "./rules/map.ts";
 import { tilesUnder } from "./rules/marks.ts";
 import { MOVES, REACTION_COLOR, REACTION_RADIUS } from "./rules/moves.ts";
 import { creatureById, onField } from "./rules/roster.ts";
 import { SPECIES } from "./rules/species.ts";
 import { hpScale, milestonesFor, speedScale, startLives } from "./rules/tiers.ts";
 import { TYPE_COLOR } from "./rules/types.ts";
+import { Spots } from "./Spots.tsx";
 import { Tiles } from "./Tiles.tsx";
 import { MILESTONES, spawnsOf, WAVE_COUNT } from "./rules/waves.ts";
 
@@ -33,7 +36,8 @@ import { MILESTONES, spawnsOf, WAVE_COUNT } from "./rules/waves.ts";
  * roster. An enemy reports up when it dies (a brood splits into mites where it fell), gets through, takes damage (its attacker's XP)
  * or sets off a reaction; a creature when a move lands, which may lay marks on the path tiles it covers.
  *
- * Pressing a tile selects the creature on it or puts the selected one there; Backspace benches the selected one, and 1 to 9 select a
+ * Pressing a tile selects the creature on it or puts the selected one there; Backspace benches the selected one, M picks it up to move (the card makes way, the tiles it may go to are marked, and a
+ * press on another creature trades their places), and 1 to 9 select a
  * creature by its place in the bar. The bar's button (or Space) starts the next wave; its ELITE (or E) makes that wave elite, when a
  * milestone follows it. When a creature has a choice waiting, a banner says so and N (or the banner) opens its prompt; the battle
  * stands still while the prompt is open. The selected creature's card shows over the field (its moves can be changed at any time);
@@ -47,10 +51,11 @@ export function Play() {
   const tier = useGame((s) => s.tier);
   const eliteNext = useGame((s) => s.elite);
   const prompting = useGame((s) => s.prompting);
+  const moving = useGame((s) => s.moving);
   const chosen = creatureById(team, selectedId);
   const offering = useGame((s) => s.offer.length > 0);
   const waiting = team.some((c) => c.choice !== null);
-  const { pause, finish, gainXp, benchSelected, choose, deselect, milestone, awardWave, toggleElite, toggleSpeed, openNextPrompt } =
+  const { pause, finish, gainXp, benchSelected, startMove, choose, deselect, milestone, awardWave, toggleElite, toggleSpeed, openNextPrompt } =
     useGame.actions();
 
   const s = useMutable({
@@ -94,7 +99,7 @@ export function Play() {
     s.clock += dt;
     while (s.spawned < spawns.length && spawns[s.spawned]!.at <= s.clock) {
       const kind = spawns[s.spawned]!.kind;
-      s.enemies.push({ id: s.nextId, kind, maxHp: Math.round(hpOf(kind, s.wave) * hpScale(tier, s.elite)), startDist: 0 });
+      s.enemies.push({ id: s.nextId, kind, maxHp: Math.round(hpOf(kind, s.wave) * hpScale(tier, s.elite) * toughnessAt(map, s.wave)), startDist: 0 });
       s.spawned += 1;
       s.nextId += 1;
     }
@@ -106,6 +111,7 @@ export function Play() {
       else pause();
     }
     if (input.pressed("Backspace")) benchSelected();
+    if (input.pressed("M")) startMove();
     if (input.pressed("N")) openNextPrompt();
     if (input.pressed("F")) toggleSpeed();
     if (input.pressed("E") && canElite) toggleElite();
@@ -133,7 +139,7 @@ export function Play() {
         s.enemies.push({
           id: s.nextId,
           kind: split.into,
-          maxHp: Math.round(hpOf(split.into, s.wave) * hpScale(tier, s.elite)),
+          maxHp: Math.round(hpOf(split.into, s.wave) * hpScale(tier, s.elite) * toughnessAt(map, s.wave)),
           startDist: Math.max(0, dist - i * 5),
         });
         s.nextId += 1;
@@ -178,8 +184,10 @@ export function Play() {
   const popped = (id: number) => {
     s.popups = s.popups.filter((p) => p.id !== id);
   };
-  const damaged = (from: number, amount: number) => {
+  const damaged = (from: number, amount: number, helper: number) => {
     if (from >= 0) gainXp(from, amount);
+    // A buffer earns a share of what the creature it hasted deals.
+    if (helper >= 0 && helper !== from) gainXp(helper, amount * BUFF_XP_SHARE);
   };
   const used = (effect: Used) => {
     const shape = MOVES[effect.move].shape;
@@ -246,6 +254,14 @@ export function Play() {
       {s.effects.map((e) => (
         <Effect key={e.id} id={e.id} color={e.color} fromX={e.fromX} fromY={e.fromY} x={e.x} y={e.y} radius={e.radius} onDone={shown} />
       ))}
+      {mapOf(map).night && (
+        <Night
+          map={map}
+          creatures={onField(team).map((c) => ({ id: c.id, x: centre(c.col, c.row).x, y: centre(c.col, c.row).y, type: SPECIES[c.species].type }))}
+          effects={s.effects}
+        />
+      )}
+      <Spots />
       <ParticleLayer particles={fx} />
       {s.popups.map((p) => (
         <Popup key={p.id} {...p} onDone={popped} />
@@ -253,7 +269,12 @@ export function Play() {
       <Hud>
         <Bar lives={s.lives} wave={s.wave} active={s.active} canElite={canElite} onStartWave={startWave} />
         {waiting && prompting < 0 && <Banner />}
-        {chosen !== undefined && prompting < 0 && <Card creature={chosen} />}
+        {chosen !== undefined && prompting < 0 && !moving && <Card creature={chosen} />}
+        {chosen !== undefined && prompting < 0 && moving && (
+          <Flex float anchor="top-left" to="top-left" x={0} y={0} width={320} paddingY={1} justifyContent="center" background="#141824c0">
+            <Text color="#f0d84a">{chosen.col >= 0 ? "MOVE: PRESS A TILE, OR A CREATURE TO SWAP. ESC CANCELS" : "PLACE: PRESS A TILE, OR A CREATURE TO SWAP. ESC CANCELS"}</Text>
+          </Flex>
+        )}
         {prompting >= 0 && <Prompt />}
         {offering && <Offer />}
         {paused && <Pause />}

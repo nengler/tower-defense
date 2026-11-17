@@ -34,7 +34,7 @@ interface EnemyProps {
   /** It reached the end of the path. */
   onLeaked: (id: number, kind: EnemyKind) => void;
   /** It took damage from the creature `from` (for that creature's XP): never more than the hit points it had left. */
-  onDamaged: (from: number, amount: number) => void;
+  onDamaged: (from: number, amount: number, helper: number) => void;
   /** A move hit it (not a burn): how much, and whether a combo made it more. For the number that pops up. */
   onHit: (x: number, y: number, amount: number, combo: boolean) => void;
   /** A combo on it set off a reaction: for `Play` to show. */
@@ -67,6 +67,8 @@ export function Enemy({ id, kind, maxHp, startDist, pace, onKilled, onLeaked, on
     burnBase: 0,
     burnFor: 0,
     burnFrom: -1,
+    /** The creature whose haste was on the burn's user (a share of its XP), or -1. */
+    burnHelper: -1,
     burnType: "ember" as Type,
     burnUser: "ember" as Type,
     soak: 0,
@@ -89,10 +91,10 @@ export function Enemy({ id, kind, maxHp, startDist, pace, onKilled, onLeaked, on
   const scale = info.boss === true ? 1.6 : 1;
 
   /** Take damage, reporting what was really taken (not past zero). */
-  const hurt = (from: number, amount: number) => {
+  const hurt = (from: number, amount: number, helper: number) => {
     const taken = Math.min(amount, Math.max(0, s.hp));
     s.hp -= amount;
-    if (taken > 0) onDamaged(from, taken);
+    if (taken > 0) onDamaged(from, taken, helper);
   };
 
   /** Does it have this status now. */
@@ -118,7 +120,7 @@ export function Enemy({ id, kind, maxHp, startDist, pace, onKilled, onLeaked, on
       return;
     }
     if (s.burnFor > 0) {
-      hurt(s.burnFrom, s.burn * Math.min(dt, s.burnFor));
+      hurt(s.burnFrom, s.burn * Math.min(dt, s.burnFor), s.burnHelper);
       s.burnFor = Math.max(0, s.burnFor - dt);
     }
     if (s.soak > 0) s.soak = Math.max(0, s.soak - dt);
@@ -213,7 +215,7 @@ export function Enemy({ id, kind, maxHp, startDist, pace, onKilled, onLeaked, on
           if (combo && b.consumes) spend(b.bonusVs);
           if (b.damage > 0) {
             const amount = afterArmor(armor, b.damage * factor * (combo ? b.bonus : 1));
-            hurt(b.from, amount);
+            hurt(b.from, amount, b.helper);
             onHit(at.x, at.y, amount, combo);
             s.boost = Math.min(SPRINT_CAP, s.boost * (info.sprint ?? 1));
             cancelTimer(s.flashTimer);
@@ -228,6 +230,7 @@ export function Enemy({ id, kind, maxHp, startDist, pace, onKilled, onLeaked, on
               s.burnBase = b.burn;
               s.burnFor = Math.max(s.burnFor, b.burnFor);
               s.burnFrom = b.from;
+              s.burnHelper = b.helper;
               s.burnType = b.moveType;
               s.burnUser = b.userType;
             }

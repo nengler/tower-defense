@@ -23,6 +23,8 @@ export interface Foe {
 export interface Blast {
   /** The creature that used the move (its XP), and the types that decide the type factor. */
   readonly from: number;
+  /** The creature whose haste was on it when it used the move (a share of its XP, `BUFF_XP_SHARE`), or -1. */
+  readonly helper: number;
   readonly moveType: Type;
   readonly userType: Type;
   /** Damage before the type factor (the creature's attack is already in it). */
@@ -56,6 +58,7 @@ export interface Blast {
 /** A blast that only damages: for tests, and as the base of a move's. */
 export const PLAIN_BLAST: Blast = {
   from: -1,
+  helper: -1,
   moveType: "stone",
   userType: "stone",
   damage: 0,
@@ -78,6 +81,8 @@ export const PLAIN_BLAST: Blast = {
 
 /** A buff landing on an ally (every ally whose middle is in its area, chosen by the creature that used it). */
 export interface Aura {
+  /** The creature that used the buff: it earns a share of the XP the hasted creature earns while the haste lasts. */
+  readonly from: number;
   /** Moves this much faster (0.3 = 30 % shorter animations and cooldowns), for `hasteFor` seconds. */
   readonly haste: number;
   readonly hasteFor: number;

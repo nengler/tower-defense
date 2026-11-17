@@ -6,7 +6,7 @@ field and which moves they have equipped, in what order.
 
 ## Runs
 
-- A **run** is 10 waves on one of three maps, at a difficulty tier. Every run starts fresh: no creatures, no levels.
+- A **run** is 10 waves on one of four maps, at a difficulty tier. Every run starts fresh: no creatures, no levels.
 - **Enemies cannot hurt creatures.** Enemies walk the path; each one that reaches the end costs a life. No lives left ends the run.
 - At **milestones** (before waves 1, 2, 4, 6, 8 and 10) you pick one new creature from an offer of three (four after an elite
   wave, below). A run starts with no
@@ -45,7 +45,8 @@ coming last is a decision, not a trap.
 Kilnback: Ember Rain; Tidehound: Riptide; Wellspring: Deluge; Stormlynx: Thunderclap; Dynamo: Overcharge; Cragjaw: Landslide;
 Bastion: Tremor; Briarwolf: Bramble Lash; Elderbloom: Verdant Field).
 
-(A buffer earns nothing for the damage its buff helps deal: something to revisit.)
+A buffer earns **half the XP** of the damage an ally deals while the buffer's haste is on it (burns included; the ally still earns
+all of its own), so a support creature levels up by helping.
 
 ## Moves
 
@@ -153,10 +154,25 @@ on the offer, on the creature's card and on the end screen.
 
 ## Maps and terrain
 
-Three maps, chosen on the run setup screen: **Meadow** (a long winding path), **Riverbend** (tight bends, far apart) and
-**Gauntlet** (one bend that all of it passes). Each has **terrain tiles**, two for each type: ash (Ember), pool (Tide), pylon
+Four maps, chosen on the run setup screen: **Meadow** (a long winding path), **Riverbend** (tight bends, far apart),
+**Gauntlet** (one bend that all of it passes) and **Glowmire** (a bog at night: the longest path, through three bends, but ponds fill
+the hollows inside them and lanterns and glow-mushrooms take tiles, so the spots beside two stretches are few; its enemies gain 6 %
+more hit points each wave than elsewhere, since the long path gives the creatures more time). Each has **terrain tiles**, two for each type: ash (Ember), pool (Tide), pylon
 (Volt), rock (Stone) and grove (Bloom). A creature standing on its own type's terrain is **attuned**: +2 to every stat (shown on its
 card, and as a dot by it). Terrain sits beside the bends, so the best tiles for coverage and for attunement pull against each other.
+
+**Glowmire's night** is drawn with the engine's layers, lights and shaders (`src/Night.tsx`, `assets/*.glsl`):
+
+- A light map (`<Lighting>`) darkens the field to a moonlit blue except where a light reaches: flickering lanterns, breathing
+  mushrooms, a light around each creature in its type's colour, a dim one on each enemy (a crowd in the dark can still be seen
+  coming), a flash where each move lands, and fireflies. `night.glsl` cuts the light into bands with an ordered dither (pixel-art
+  light pools, not a smooth gradient), tints the shadows blue and darkens the corners.
+- An additive glow layer puts the brightest lights on top, past the colours of the art, which a multiplied light map cannot do.
+- The ponds are a layer of their own; `water.glsl` sways each row sideways by whole pixels and drifts glints across them.
+- `fog.glsl` drifts two octaves of noise over the field as mist.
+
+The software renderer (tests, `tse screenshot` without `--gpu`) runs no shaders: the night is still lit, without the bands, ripples
+and mist.
 
 ## Difficulty
 
@@ -187,6 +203,11 @@ on a day plays the same run. It unlocks nothing.
 the wave, and the start-wave button. Under each creature on the field, one pip per equipped move fills as its cooldown runs; dots
 over it while it settles, a yellow bar while jammed. Clicking a creature opens its card: stats, level, and its moves, which can be
 equipped, unequipped and reordered.
+
+**Moving.** The card's MOVE (PLACE for a creature on the bench, or the M key) puts the card away and marks every tile the creature
+may go to; pressing one moves it there, and pressing another creature trades their places (one from the bench sends the other to the
+bench). A creature just taken at a milestone starts out being placed, so its card never covers half of the field before it has a
+tile. Escape calls it off.
 
 Between waves the bar shows **what the next wave brings**: each enemy kind's walk and how many. It also has the speed button (1X or
 2X, or F) and, when a milestone follows the next wave, ELITE.

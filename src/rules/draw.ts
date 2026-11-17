@@ -59,4 +59,19 @@ export const ENEMY_ANIMATIONS = {
 } as const;
 
 /** The tiles of `assets/tiles.png`: grass, grass with a tuft, path, then a terrain tile per type in `TYPES` order. */
-export const TILE_FRAME = { grass: 0, tuft: 1, path: 2, ember: 3, tide: 4, volt: 5, stone: 6, bloom: 7 } as const;
+export const TILE_FRAME = {
+  grass: 0,
+  tuft: 1,
+  path: 2,
+  ember: 3,
+  tide: 4,
+  volt: 5,
+  stone: 6,
+  bloom: 7,
+  bog: 8,
+  reeds: 9,
+  cobbles: 10,
+  water: 11,
+  lantern: 12,
+  mushroom: 13,
+} as const;

@@ -3,7 +3,7 @@
  * screen, the draw list, collisions, against a recording backend under Node. It prints the mean, the 99th percentile and the
  * slowest step of each wave, and the most draw records a frame of it had. Drawing in libtse is not in it.
  *
- *   node tools/frame-time.ts
+ *   node tools/frame-time.ts ["skilled, glowmire"]   (another strategy, by name)
  */
 import { createPlayer, parseInputScript, RecordingBackend } from "@tsengine/player";
 import { findComponent } from "@tsengine/testing";
@@ -13,7 +13,7 @@ import { useGame } from "../src/GameState.ts";
 import { WAVE_COUNT } from "../src/rules/waves.ts";
 import { answer, manage, STRATEGIES, takeAndPlace } from "./balance.ts";
 
-const strategy = STRATEGIES[0]!;
+const strategy = STRATEGIES.find((s) => s.name === process.argv[2]) ?? STRATEGIES[0]!;
 // Only the latest frame is kept, and it is decoded (for its record count) once a second: decoding every frame costs more than the game.
 const backend = new RecordingBackend({ keepFrames: 1 });
 const player = createPlayer(backend, { ...gameConfig, warn: () => {} });

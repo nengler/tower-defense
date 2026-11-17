@@ -10,6 +10,8 @@ import { useGame } from "../src/GameState.ts";
 import { BURROW, ENEMIES, SPRINT_CAP, type EnemyKind } from "../src/rules/enemies.ts";
 import { MAPS, pathAt } from "../src/rules/map.ts";
 import { CHAIN_SHARE, ROOT_FOR, SHATTER_SHARE } from "../src/rules/moves.ts";
+import { BUFF_XP_SHARE } from "../src/rules/progress.ts";
+import { newCreature } from "../src/rules/roster.ts";
 import { spawnsOf } from "../src/rules/waves.ts";
 
 const STEPS_A_SECOND = 60;
@@ -67,7 +69,7 @@ describe("an enemy", () => {
     const { t, onDamaged } = enemy();
     hit(t, blast({ damage: 10 }));
     assert.equal(fields(t).hp, 990, "volt against bloom is neutral, and not the user's type");
-    assert.deepEqual(onDamaged.mock.calls[0]?.arguments, [7, 10]);
+    assert.deepEqual(onDamaged.mock.calls[0]?.arguments, [7, 10, -1]);
     hit(t, blast({ damage: 10, moveType: "ember", userType: "ember" }));
     assert.ok(near(fields(t).hp!, 990 - 10 * 1.25 * 1.5), "ember beats bloom, and is its user's type");
   });
@@ -95,6 +97,14 @@ describe("an enemy", () => {
     assert.ok(near(fields(t).hp!, 996), `hp ${fields(t).hp}`);
     const total = onDamaged.mock.calls.reduce((sum, c) => sum + (c.arguments[1] as number), 0);
     assert.ok(near(total, 4));
+  });
+
+  it("names the ally whose haste was on the attacker, for a hit and for the burn it leaves", () => {
+    const { t, onDamaged } = enemy();
+    hit(t, blast({ damage: 10, burn: 4, burnFor: 1, helper: 9 }));
+    t.step(STEPS_A_SECOND);
+    assert.ok(onDamaged.mock.calls.length > 1);
+    for (const call of onDamaged.mock.calls) assert.deepEqual([call.arguments[0], call.arguments[2]], [7, 9]);
   });
 
   it("a soak makes the next Volt move hit twice as hard, and is used up by it", () => {
@@ -285,6 +295,19 @@ describe("enemies that get in the way", () => {
 });
 
 describe("the battle", () => {
+  it("a hit earns its attacker that much XP, and the ally whose haste was on it half as much", () => {
+    useGame.store.reset();
+    const t = render(Play, {});
+    useGame.setState({ roster: [newCreature(1, "voltkit", 0), newCreature(2, "puddlepup", 0)] });
+    t.input("Space");
+    t.step(STEPS_A_SECOND);
+    t.send("enemy", { x: 0, y: 0, radius: 10_000 }, blast({ from: 1, helper: 2, damage: 2, moveType: "volt", userType: "volt" }));
+    const xp = useGame.getState().roster.map((c) => c.xp);
+    // The first enemy is a crawler (Bloom): Volt is neutral against it, and ×1.25 in a Voltkit's hands.
+    assert.ok(near(xp[0]!, 2.5), `attacker ${xp[0]}`);
+    assert.ok(near(xp[1]!, 2.5 * BUFF_XP_SHARE), `helper ${xp[1]}`);
+  });
+
   it("a wave nobody defends: every enemy gets through, and lives go down by one each", () => {
     useGame.store.reset();
     const t = render(Play, {});

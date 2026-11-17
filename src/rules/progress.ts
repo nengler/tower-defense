@@ -26,6 +26,12 @@ export function addXp(level: number, xp: number, amount: number): Leveled {
   return { level: l, xp: l >= MAX_LEVEL ? 0 : x, gained: l - level };
 }
 
+/**
+ * The share of a hasted creature's XP its buffer earns as well: 50 % of the damage a creature deals while hasted goes to whoever hasted
+ * it (the hasted creature still earns all of its own).
+ */
+export const BUFF_XP_SHARE = 0.5;
+
 /** Mastery points needed for each mastery level (DESIGN.md, "Mastery"). */
 export const MASTERY_AT: readonly number[] = [5, 15, 30];
 /** Mastery points for each wave a species was on the field for, and for each run it finished (win or lose). */

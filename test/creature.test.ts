@@ -163,6 +163,7 @@ describe("a creature", () => {
     assert.equal((t.state().s as { haste: number }).haste, 0.3, "it hastes itself");
     assert.equal(auras(5).length, 1);
     assert.equal(auras(5)[0]!.haste, 0.3);
+    assert.equal(auras(5)[0]!.from, 3, "the aura says who sent it, for its share of the XP");
     assert.equal(auras(6).length, 0, "an ally whose box reaches the area but whose middle is outside it is not hasted");
   });
 
@@ -222,11 +223,31 @@ describe("a creature", () => {
     const plain = creature(["zap"]);
     plain.t.step(10);
     const hasted = creature(["zap"]);
-    receive(hasted.t, { haste: 0.5, hasteFor: 5 });
+    receive(hasted.t, { from: 8, haste: 0.5, hasteFor: 5 });
     hasted.t.step(10);
     const zap = scaled("zap", statsAt("voltkit", 1));
     const spentPlain = zap.cooldown - fields(plain.t).cooldowns.zap!;
     const spentHasted = zap.cooldown - fields(hasted.t).cooldowns.zap!;
     assert.ok(Math.abs(spentHasted - 2 * spentPlain) < 1e-6, `plain ${spentPlain}, hasted ${spentHasted}`);
+  });
+
+  it("while an ally's haste is on it, what it sends names that ally (for a share of the XP); its own haste names nobody", () => {
+    const { t, near, blasts } = creature(["zap"]);
+    near(1, 20);
+    receive(t, { from: 8, haste: 0.3, hasteFor: 5 });
+    const zap = scaled("zap", statsAt("voltkit", 1));
+    t.step(secondsToSteps(zap.cooldown + zap.animation));
+    assert.equal(blasts(1)[0]?.helper, 8);
+
+    const self = creature(["zap"]);
+    self.near(1, 20);
+    receive(self.t, { from: 3, haste: 0.3, hasteFor: 5 });
+    self.t.step(secondsToSteps(zap.cooldown + zap.animation));
+    assert.equal(self.blasts(1)[0]?.helper, -1);
+
+    const plain = creature(["zap"]);
+    plain.near(1, 20);
+    plain.t.step(secondsToSteps(zap.cooldown + zap.animation) + 5);
+    assert.equal(plain.blasts(1)[0]?.helper, -1, "not hasted");
   });
 });
