@@ -15,6 +15,7 @@ import { Popup } from "./Popup.tsx";
 import { save } from "./save.ts";
 import { ENEMIES, hpOf, type EnemyKind } from "./rules/enemies.ts";
 import { MOVES } from "./rules/moves.ts";
+import { BUFF_XP_SHARE } from "./rules/progress.ts";
 import { TYPE_COLOR } from "./rules/types.ts";
 import { centre } from "./rules/map.ts";
 import { creatureById, onField } from "./rules/roster.ts";
@@ -27,7 +28,7 @@ export const START_LIVES = 10;
 /**
  * The battle. It keeps what the whole battle shares: the lives, the wave and its spawner, and the lists of enemies and of moves
  * landing, which it draws as components that each keep their own state; the creatures on the field come from the roster. An enemy
- * reports up when it dies, gets through or takes damage (its attacker's XP); a creature when a move lands. Pressing a tile selects
+ * reports up when it dies, gets through or takes damage (its attacker's XP, and a share for the ally that hasted it); a creature when a move lands. Pressing a tile selects
  * the creature on it or puts the selected one there; Backspace benches the selected one, and 1 to 9 select a creature by its place
  * in the bar. The bar's button (or Space) starts the next wave. The selected creature's card shows over the field (its moves can
  * be changed at any time); Escape closes it, or pauses. Before each wave in `MILESTONES` a milestone offers a new creature, and no
@@ -122,8 +123,10 @@ export function Play() {
   const popped = (id: number) => {
     s.popups = s.popups.filter((p) => p.id !== id);
   };
-  const damaged = (from: number, amount: number) => {
+  const damaged = (from: number, amount: number, helper: number) => {
     if (from >= 0) gainXp(from, amount);
+    // A buffer earns a share of what the creature it hasted deals.
+    if (helper >= 0 && helper !== from) gainXp(helper, amount * BUFF_XP_SHARE);
   };
   const used = (effect: Used) => {
     const shape = MOVES[effect.move].shape;

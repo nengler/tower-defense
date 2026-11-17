@@ -31,7 +31,8 @@ Each creature belongs to a **species**, which sets its type, its base stats, how
 
 **Levels.** A creature earns 1 XP per point of damage it deals; a level costs 40 × the level it is at. On a level-up its stats grow
 and it may learn a new move. A learned move goes into its move list; if a slot is free it is equipped, otherwise it waits there for
-the player. (A buffer earns nothing for the damage its buff helps deal: something to revisit.)
+the player. A buffer earns **half the XP** of the damage an ally deals while the buffer's haste is on it (the ally still earns all of
+its own), so a support creature levels up by helping.
 
 ## Moves
 

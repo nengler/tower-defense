@@ -32,7 +32,8 @@ interface CreatureProps {
  * placed), so swapping is never a way to skip one. It uses one move at a time: when it is not busy, it starts the first ready move,
  * in equip order, that has a use (an enemy in reach; a buff always has one), and is busy for that move's animation, at the end of
  * which the move lands: it is sent to the enemies (or, for a buff, the allies) it lands on, and shown (`onUse`). A haste on it
- * (from a buff, its own or an ally's) makes its animations and cooldowns run faster.
+ * (from a buff, its own or an ally's) makes its animations and cooldowns run faster, and an ally's haste earns that ally a share of the
+ * XP for what it deals meanwhile (`helper` on what it sends).
  *
  * It draws its species' sprite (an idle bob), a ring while it is using a move, and under it one pip per equipped move that fills as the
  * move's cooldown runs.
@@ -49,13 +50,16 @@ export function Creature({ id, species, level, equipped, x, y, selected, onUse }
     target: -1,
     haste: 0,
     hasteFor: 0,
+    /** The creature whose haste is on it (itself, for its own buff): it earns a share of the XP this one earns while hasted. */
+    hasteFrom: -1,
   });
   /** The move as this creature uses it. */
   const use = (move: MoveId) => scaled(move, stats);
   /** The enemies around it, as their colliders describe them. */
   const enemies = () => nearby("enemy", x, y, LOOK).map((e) => e.data);
-  /** A haste landing on it: the stronger of this and one still running, for the longer time. */
+  /** A haste landing on it: the stronger of this and one still running, for the longer time. The newest buffer gets the credit. */
   const hasten = (a: Aura) => {
+    s.hasteFrom = a.from;
     s.haste = Math.max(s.hasteFor > 0 ? s.haste : 0, a.haste);
     s.hasteFor = Math.max(s.hasteFor, a.hasteFor);
   };
@@ -77,7 +81,7 @@ export function Creature({ id, species, level, equipped, x, y, selected, onUse }
     const m = MOVES[move];
     const u = use(move);
     if (m.shape === "buff") {
-      const aura = { haste: m.effects.haste ?? 0, hasteFor: m.effects.hasteFor ?? 0 };
+      const aura = { from: id, haste: m.effects.haste ?? 0, hasteFor: m.effects.hasteFor ?? 0 };
       // `nearby` leaves out its own collider: it takes its own buff here.
       hasten(aura);
       for (const ally of nearby("ally", x, y, u.radius)) if (Math.hypot(ally.data.x - x, ally.data.y - y) <= u.radius) send("ally", ally, aura);
@@ -92,6 +96,7 @@ export function Creature({ id, species, level, equipped, x, y, selected, onUse }
     const blast = {
       ...PLAIN_BLAST,
       from: id,
+      helper: s.hasteFor > 0 && s.hasteFrom !== id ? s.hasteFrom : -1,
       moveType: m.type,
       userType: type,
       damage: u.damage,
