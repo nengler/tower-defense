@@ -124,6 +124,11 @@ and on the end screen.
 the wave, and the start-wave button. Under each creature on the field, one pip per equipped move fills as its cooldown runs. Clicking
 a creature opens its card: stats, level, and its moves, which can be equipped, unequipped and reordered.
 
+**Moving.** The card's MOVE (PLACE for a creature on the bench, or the M key) puts the card away and marks every tile the creature
+may go to; pressing one moves it there, and pressing another creature trades their places (one from the bench sends the other to the
+bench). A creature just taken at a milestone starts out being placed, so its card never covers half of the field before it has a
+tile. Escape calls it off. Moving works between waves and during them.
+
 ## Enemies
 
 | Enemy | Type | Does |
