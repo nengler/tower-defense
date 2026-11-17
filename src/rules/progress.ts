@@ -1,4 +1,5 @@
-import { SPECIES, type SpeciesId } from "./species.ts";
+import { TERRAIN_BONUS } from "./map.ts";
+import { FORM_IDS, FORMS, SPECIES, SPECIES_IDS, statsAt, type SpeciesId, type Stats } from "./species.ts";
 
 /** The highest level a creature reaches. */
 export const MAX_LEVEL = 20;
@@ -67,3 +68,27 @@ export function nextMasteryAt(points: number): number | null {
 
 /** What a mastery level gives, in a few words. */
 export const MASTERY_TEXT: readonly string[] = ["", "FIRST CHOICE AT LV1", "LEARNS MOVES SOONER", "A 4TH MOVE SLOT"];
+
+/**
+ * The highest each stat can be: the best of any species or form at `MAX_LEVEL`, standing on its own terrain. The card draws each stat
+ * as a bar out of its own highest, as a Pokémon summary does, so a full bar means as high as that stat goes in the game.
+ */
+export const STAT_CEILING: Readonly<Record<keyof Stats, number>> = (() => {
+  const best = { atk: 0, spd: 0, rng: 0, cd: 0 };
+  const keys = ["atk", "spd", "rng", "cd"] as const;
+  const consider = (s: Stats) => {
+    for (const k of keys) best[k] = Math.max(best[k], s[k] + TERRAIN_BONUS);
+  };
+  for (const id of SPECIES_IDS) consider(statsAt(id, MAX_LEVEL));
+  for (const id of FORM_IDS) {
+    const f = FORMS[id];
+    const s = statsAt(f.species, MAX_LEVEL);
+    consider({ atk: s.atk + f.bonus.atk, spd: s.spd + f.bonus.spd, rng: s.rng + f.bonus.rng, cd: s.cd + f.bonus.cd });
+  }
+  return best;
+})();
+
+/** How much of a stat's bar `value` fills: a percentage of that stat's `STAT_CEILING`. */
+export function statBarPercent(stat: keyof Stats, value: number): number {
+  return Math.min(100, Math.max(0, (100 * value) / STAT_CEILING[stat]));
+}
