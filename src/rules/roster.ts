@@ -53,6 +53,17 @@ export function place(roster: readonly Owned[], id: number, col: number, row: nu
   return roster.map((c) => (c.id === id ? { ...c, col, row } : c));
 }
 
+/**
+ * Creature `id` takes the place of creature `other`, which goes where `id` was: two on the field trade tiles, and one from the bench
+ * puts the other on the bench (so the field count stays the same).
+ */
+export function swap(roster: readonly Owned[], id: number, other: number): readonly Owned[] {
+  const a = roster.find((c) => c.id === id);
+  const b = roster.find((c) => c.id === other);
+  if (a === undefined || b === undefined || a === b) return roster;
+  return roster.map((c) => (c.id === id ? { ...c, col: b.col, row: b.row } : c.id === other ? { ...c, col: a.col, row: a.row } : c));
+}
+
 /** Back to the bench. */
 export function bench(roster: readonly Owned[], id: number): readonly Owned[] {
   return roster.map((c) => (c.id === id ? { ...c, col: -1, row: -1 } : c));

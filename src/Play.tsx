@@ -1,4 +1,4 @@
-import { Entity, Hud, ParticleLayer, useInput, useMutable, useUpdate } from "@tsengine/runtime/jsx";
+import { Entity, Flex, Hud, ParticleLayer, Text, useInput, useMutable, useUpdate } from "@tsengine/runtime/jsx";
 
 import { Bar } from "./Bar.tsx";
 import { Card } from "./Card.tsx";
@@ -19,6 +19,7 @@ import { BUFF_XP_SHARE } from "./rules/progress.ts";
 import { TYPE_COLOR } from "./rules/types.ts";
 import { centre } from "./rules/map.ts";
 import { creatureById, onField } from "./rules/roster.ts";
+import { Spots } from "./Spots.tsx";
 import { Tiles } from "./Tiles.tsx";
 import { MILESTONES, spawnsOf, WAVE_COUNT } from "./rules/waves.ts";
 
@@ -29,7 +30,8 @@ export const START_LIVES = 10;
  * The battle. It keeps what the whole battle shares: the lives, the wave and its spawner, and the lists of enemies and of moves
  * landing, which it draws as components that each keep their own state; the creatures on the field come from the roster. An enemy
  * reports up when it dies, gets through or takes damage (its attacker's XP, and a share for the ally that hasted it); a creature when a move lands. Pressing a tile selects
- * the creature on it or puts the selected one there; Backspace benches the selected one, and 1 to 9 select a creature by its place
+ * the creature on it or puts the selected one there (its card's MOVE hides the card and marks where it may go, and a press on
+ * another creature then trades their places); Backspace benches the selected one, M picks it up to move, and 1 to 9 select a creature by its place
  * in the bar. The bar's button (or Space) starts the next wave. The selected creature's card shows over the field (its moves can
  * be changed at any time); Escape closes it, or pauses. Before each wave in `MILESTONES` a milestone offers a new creature, and no
  * wave starts until one is taken.
@@ -40,7 +42,8 @@ export function Play() {
   const selectedId = useGame((s) => s.selected);
   const chosen = creatureById(team, selectedId);
   const offering = useGame((s) => s.offer.length > 0);
-  const { pause, finish, gainXp, benchSelected, choose, deselect, milestone, awardWave } = useGame.actions();
+  const moving = useGame((s) => s.moving);
+  const { pause, finish, gainXp, benchSelected, startMove, choose, deselect, milestone, awardWave } = useGame.actions();
 
   const s = useMutable({
     lives: START_LIVES as number,
@@ -89,6 +92,7 @@ export function Play() {
       else pause();
     }
     if (input.pressed("Backspace")) benchSelected();
+    if (input.pressed("M")) startMove();
     for (let n = 1; n <= 9; n++) if (input.pressed(`${n}`)) choose(n - 1);
   });
 
@@ -141,6 +145,7 @@ export function Play() {
   return (
     <Entity>
       <Field />
+      <Spots />
       <Tiles />
       {onField(team).map((c) => (
         <Creature
@@ -167,7 +172,12 @@ export function Play() {
       ))}
       <Hud>
         <Bar lives={s.lives} wave={s.wave} active={s.active} onStartWave={startWave} />
-        {chosen !== undefined && <Card creature={chosen} />}
+        {chosen !== undefined && !moving && <Card creature={chosen} />}
+        {chosen !== undefined && moving && (
+          <Flex float anchor="top-left" to="top-left" x={0} y={0} width={320} paddingY={1} justifyContent="center" background="#141824c0">
+            <Text color="#f0d84a">{chosen.col >= 0 ? "MOVE: PRESS A TILE, OR A CREATURE TO SWAP. ESC CANCELS" : "PLACE: PRESS A TILE, OR A CREATURE TO SWAP. ESC CANCELS"}</Text>
+          </Flex>
+        )}
         {offering && <Offer />}
         {paused && <Pause />}
       </Hud>

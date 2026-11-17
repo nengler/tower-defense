@@ -18,14 +18,14 @@ interface CardProps {
 /**
  * The selected creature's card, over the side of the field it is not on: its name, level and XP, its stats, and its moves. The
  * equipped moves are listed in the order it tries them, each with `UP` (try it earlier) and `x` (unequip); the moves it knows but has
- * not equipped follow, and pressing one equips it while a slot is free. All of it works mid-wave. `BENCH` takes it off the field,
+ * not equipped follow, and pressing one equips it while a slot is free. All of it works mid-wave. `MOVE` (`PLACE` on the bench) puts the card away so any tile can be pressed, `BENCH` takes it off the field,
  * `CLOSE` (or Escape) deselects it.
  *
  * The card takes every press that lands on it (`onPress`), its buttons first as they are drawn over it: without that, a press on a gap
  * between two rows went through to the tile under the card and moved the creature there.
  */
 export function Card({ creature }: CardProps) {
-  const { equip, unequip, raise, benchSelected, deselect } = useGame.actions();
+  const { equip, unequip, raise, benchSelected, deselect, startMove } = useGame.actions();
   const info = SPECIES[creature.species];
   const stats = statsAt(creature.species, creature.level);
   const slots = slotsFor(creature.mastery);
@@ -82,6 +82,9 @@ export function Card({ creature }: CardProps) {
       ))}
       <Flex width="grow" height="grow" />
       <Flex direction="row" gap={4} width="grow">
+        <Flex paddingX={3} paddingY={1} background="#3a5a8a" onPress={startMove}>
+          <Text>{creature.col >= 0 ? "MOVE" : "PLACE"}</Text>
+        </Flex>
         {creature.col >= 0 && (
           <Flex paddingX={3} paddingY={1} background="#2a2f40" onPress={benchSelected}>
             <Text>BENCH</Text>

@@ -3,7 +3,7 @@ import { createGameState } from "@tsengine/runtime";
 import { setVolume, sfx } from "./effects.ts";
 
 import type { MoveId } from "./rules/moves.ts";
-import { bench, earn, equipMove, newCreature, place, raiseMove, standingAt, unequipMove, type Owned } from "./rules/roster.ts";
+import { bench, earn, equipMove, newCreature, place, raiseMove, standingAt, swap, unequipMove, type Owned } from "./rules/roster.ts";
 import { MASTERY_PER_RUN, MASTERY_PER_WAVE, masteryLevel } from "./rules/progress.ts";
 import { pick } from "./rules/rng.ts";
 import { SPECIES_IDS, type SpeciesId } from "./rules/species.ts";
@@ -28,6 +28,8 @@ export const useGame = createGameState(
     roster: [] as readonly Owned[],
     /** The selected creature's id, or -1. */
     selected: -1,
+    /** The selected creature is being placed or moved: its card is out of the way and a press on a tile puts it there. */
+    moving: false,
     nextCreature: 1,
     /** The creatures a milestone offers; empty while there is no milestone. */
     offer: [] as readonly SpeciesId[],
@@ -44,6 +46,7 @@ export const useGame = createGameState(
       s.roster = [];
       s.nextCreature = 1;
       s.selected = -1;
+      s.moving = false;
       const rolled = pick(SPECIES_IDS, OFFER_SIZE, s.seed);
       s.offer = rolled.picked;
       s.seed = rolled.seed;
@@ -54,11 +57,12 @@ export const useGame = createGameState(
       s.offer = rolled.picked;
       s.seed = rolled.seed;
     },
-    /** Take a creature the offer has: it joins the roster on the bench, selected so a press on a tile places it. */
+    /** Take a creature the offer has: it joins the roster on the bench, selected and being placed, so a press on a tile puts it there. */
     takeOffer(s, species: SpeciesId) {
       if (!s.offer.includes(species)) return;
       s.roster = [...s.roster, newCreature(s.nextCreature, species, masteryLevel(s.mastery[species]))];
       s.selected = s.nextCreature;
+      s.moving = true;
       s.nextCreature += 1;
       s.offer = [];
       sfx.play("pick");
@@ -102,29 +106,48 @@ export const useGame = createGameState(
     choose(s, index: number) {
       const c = s.roster[index];
       if (c !== undefined) s.selected = c.id;
+      s.moving = false;
     },
     /** Select a creature (on the field or the bench); selecting the selected one again deselects it. */
     select(s, id: number) {
       s.selected = s.selected === id ? -1 : id;
+      s.moving = false;
+    },
+    /** Pick the selected creature up, to place it (from the bench) or move it (on the field): its card makes way for the field. */
+    startMove(s) {
+      if (s.selected >= 0) s.moving = true;
     },
     /**
-     * A tile was pressed. With a creature on it, that creature is selected. Otherwise the selected creature goes there, if it may
-     * (not path, at most 5 on the field), and stays selected.
+     * A tile was pressed. While a creature is being moved: on its own tile, the move is called off; on another creature's, the two
+     * trade places (`swap`); on a free tile, it goes there if it may (not path, at most 5 on the field). Otherwise a creature on the
+     * tile is selected, and a free tile takes the selected creature, as above. The creature stays selected, its card back.
      */
     tapTile(s, col: number, row: number) {
       const there = standingAt(s.roster, col, row);
+      if (s.moving && there !== undefined && s.selected >= 0) {
+        s.moving = false;
+        if (there.id === s.selected) return;
+        s.roster = swap(s.roster, s.selected, there.id);
+        sfx.play("pick");
+        return;
+      }
       if (there !== undefined) {
         s.selected = there.id;
+        s.moving = false;
         return;
       }
       if (s.selected < 0) return;
       const before = s.roster;
       s.roster = place(s.roster, s.selected, col, row);
-      if (s.roster !== before) sfx.play("pick");
+      if (s.roster !== before) {
+        s.moving = false;
+        sfx.play("pick");
+      }
     },
     /** Take the selected creature off the field. */
     benchSelected(s) {
       if (s.selected >= 0) s.roster = bench(s.roster, s.selected);
+      s.moving = false;
     },
     /** Equip a move the selected creature knows into a free slot. */
     equip(s, move: MoveId) {
@@ -140,6 +163,7 @@ export const useGame = createGameState(
     },
     deselect(s) {
       s.selected = -1;
+      s.moving = false;
     },
     /** A creature dealt damage: it earns that much XP. */
     gainXp(s, id: number, amount: number) {

@@ -75,3 +75,22 @@ test("a press on the card's own background stays on the card: the creature is no
   const moved = play(`_*2, Enter, _*3, Enter, _*2, ${tile(3, 2)}, _*2, ${tile(6, 4)}, _*2`);
   assert.deepEqual(moved.states[moved.states.length - 1]!.at, ["6,4"], "a tile beside the card still takes one");
 });
+
+test("moving: M hides the card, so a creature can go anywhere, even under where its card was; a press on another creature swaps them", () => {
+  // Placed at (3, 2), its card covers the right of the field: (15, 6) is under it. After M the card makes way.
+  const { states } = play(`_*2, Enter, _*3, Enter, _*2, ${tile(3, 2)}, _*2, M, _*2, ${tile(15, 6)}, _*2`);
+  assert.deepEqual(states[states.length - 1]!.at, ["15,6"]);
+  // A second creature (after wave 1) is placed at (6, 4), then M and a press on the first: they trade tiles.
+  const wave = `Space, _*2100`;
+  const swapped = play(`_*2, Enter, _*3, Enter, _*2, ${tile(3, 2)}, _, ${wave}, Enter, _*3, ${tile(6, 4)}, _*2, M, _*2, ${tile(3, 2)}, _*2`);
+  assert.deepEqual(swapped.states[swapped.states.length - 1]!.at, ["6,4", "3,2"]);
+});
+
+test("a creature just taken is being placed: its card waits until it is on the field", () => {
+  const { states } = play(`_*2, Enter, _*3, Enter, _*2`);
+  assert.equal(useGame.getState().moving, true);
+  const placed = play(`_*2, Enter, _*3, Enter, _*2, ${tile(17, 6)}, _*2`);
+  assert.deepEqual(placed.states[placed.states.length - 1]!.at, ["17,6"], "a tile on the right, where the card would have been");
+  assert.equal(useGame.getState().moving, false);
+  assert.ok(states.length > 0);
+});

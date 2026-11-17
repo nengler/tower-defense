@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { PATH_TILES } from "../src/rules/map.ts";
-import { bench, canPlace, earn, FIELD_LIMIT, newCreature, onField, place, type Owned } from "../src/rules/roster.ts";
+import { bench, canPlace, swap, earn, FIELD_LIMIT, newCreature, onField, place, type Owned } from "../src/rules/roster.ts";
 
 const team = (n: number): readonly Owned[] => Array.from({ length: n }, (_, i) => newCreature(i + 1, "voltkit", 0));
 
@@ -51,4 +51,17 @@ test("XP levels a creature up; a move it learns is equipped if a slot is free, a
   assert.equal(r[0]!.level, 7);
   assert.deepEqual(r[0]!.known, ["zap", "jolt", "jet", "arc"]);
   assert.deepEqual(r[0]!.equipped, ["zap", "jolt", "jet"], "three slots: Arc Storm waits");
+});
+
+test("swap: two on the field trade tiles; one from the bench takes the other's tile and benches it", () => {
+  let r = team(3);
+  r = place(r, 1, 0, 0);
+  r = place(r, 2, 0, 8);
+  r = swap(r, 1, 2);
+  assert.deepEqual([r[0]!.col, r[0]!.row, r[1]!.col, r[1]!.row], [0, 8, 0, 0]);
+  r = swap(r, 3, 1);
+  assert.deepEqual([r[2]!.col, r[2]!.row], [0, 8]);
+  assert.equal(r[0]!.col, -1, "the one it replaced is on the bench");
+  assert.equal(onField(r).length, 2);
+  assert.equal(swap(r, 1, 1), r);
 });
