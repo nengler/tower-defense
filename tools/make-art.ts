@@ -225,12 +225,64 @@ function tinyTown(n: number): { readonly width: number; readonly height: number;
 }
 
 /** Draw the `w` × `h` part of `img` at (sx, sy) onto `c` at (ox, oy), skipping clear pixels. */
-function blit(c: Canvas, img: { readonly width: number; readonly rgba: Uint8Array }, ox: number, oy: number, sx = 0, sy = 0, w = 16, h = 16): void {
+/**
+ * The day maps' palette: the ground is kept to a few quiet colours so the creatures, enemies and effects stand out. Two greens for
+ * grass, three tans for the road, one ink for every outline, one for flowers, and a dark and a light of each type's colour (muted from
+ * `TONE`) for its terrain.
+ */
+const DAY = {
+  ink: [0x24, 0x1e, 0x2a],
+  grass: [0x3a, 0x52, 0x42],
+  grassDark: [0x31, 0x46, 0x3a],
+  road: [0x7a, 0x6a, 0x52],
+  roadDark: [0x64, 0x56, 0x3f],
+  roadLight: [0x8c, 0x7a, 0x5e],
+  flower: [0x86, 0x82, 0x6a],
+  ember: [0xb0, 0x62, 0x3a],
+  emberLight: [0xd0, 0x8a, 0x4a],
+  tide: [0x34, 0x64, 0x8f],
+  tideLight: [0x6a, 0x98, 0xbc],
+  volt: [0xb0, 0x92, 0x3c],
+  voltLight: [0xd4, 0xbc, 0x66],
+  stoneLight: [0x9a, 0x94, 0x88],
+  bloom: [0x3e, 0x6e, 0x40],
+  bloomLight: [0x5a, 0x8c, 0x52],
+} as const satisfies Record<string, Rgb>;
+
+/** Each colour Kenney's tiles use, as `DAY`'s: grass, road, outline and trunk. A tile's own `recolour` comes first. */
+const QUIET: Readonly<Record<string, Rgb>> = {
+  "84c669": DAY.grass,
+  "65a556": DAY.grassDark,
+  eaa56c: DAY.road,
+  cf8254: DAY.roadDark,
+  fec99c: DAY.roadLight,
+  "3f2631": DAY.ink,
+  bd6c4a: DAY.roadDark,
+  ffffff: DAY.flower,
+};
+
+const hex = (r: number, g: number, b: number) => [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
+
+/**
+ * Draw the `w` × `h` part of `img` at (sx, sy) onto `c` at (ox, oy), skipping clear pixels, each colour put to the day palette:
+ * `recolour` (by Kenney's colour, as `rrggbb`) first, then `QUIET`. A colour in neither is an error, so a new tile cannot bring its
+ * own colours in unnoticed.
+ */
+function blit(
+  c: Canvas,
+  img: { readonly width: number; readonly rgba: Uint8Array },
+  ox: number,
+  oy: number,
+  { sx = 0, sy = 0, w = 16, h = 16, recolour = {} }: { sx?: number; sy?: number; w?: number; h?: number; recolour?: Readonly<Record<string, Rgb>> } = {}
+): void {
   for (let y = 0; y < h; y++)
     for (let x = 0; x < w; x++) {
       const i = ((sy + y) * img.width + sx + x) * 4;
       if ((img.rgba[i + 3] ?? 0) === 0) continue;
-      c.set(ox + x, oy + y, [img.rgba[i]!, img.rgba[i + 1]!, img.rgba[i + 2]!]);
+      const key = hex(img.rgba[i]!, img.rgba[i + 1]!, img.rgba[i + 2]!);
+      const to = recolour[key] ?? QUIET[key];
+      if (to === undefined) throw new Error(`Kenney colour #${key} has no place in the day palette`);
+      c.set(ox + x, oy + y, to);
     }
 }
 
@@ -258,7 +310,7 @@ function pathTile(c: Canvas, ox: number, mask: number): void {
   ];
   for (const q of quarters) {
     const piece = q.v && q.h ? q.inner : q.v ? q.vertical : q.h ? q.horizontal : q.outer;
-    blit(c, tinyTown(piece), ox + q.qx, q.qy, q.qx, q.qy, 8, 8);
+    blit(c, tinyTown(piece), ox + q.qx, q.qy, { sx: q.qx, sy: q.qy, w: 8, h: 8 });
   }
 }
 
@@ -268,23 +320,22 @@ function tiles(): void {
   // The day maps' ground is Kenney's Tiny Town (CC0, tools/kenney/): grass, grass with flowers, and the road's middle.
   const grass = tinyTown(0);
   blit(c, grass, 0, 0);
-  blit(c, tinyTown(2), 16, 0);
+  blit(c, tinyTown(2), 16, 0, { recolour: { fdbe53: DAY.flower, e38628: DAY.roadLight } });
   blit(c, tinyTown(25), 32, 0);
   // The terrain, on grass: an autumn tree (ash, Ember), a pond (pool, Tide), a gold crystal (pylon, Volt), cobbles (rock, Stone)
   // and a green tree (grove, Bloom).
   for (const n of [3, 4, 5, 7]) blit(c, grass, n * 16, 0);
-  blit(c, tinyTown(27), 3 * 16, 0);
-  blit(c, tinyTown(93), 5 * 16, 0);
-  blit(c, tinyTown(43), 6 * 16, 0);
-  blit(c, tinyTown(16), 7 * 16, 0);
-  // The pond is drawn, in Tiny Town's way (the same dark outline), since the pack has no water.
-  const OUTLINE: Rgb = [0x3f, 0x26, 0x31];
+  blit(c, tinyTown(27), 3 * 16, 0, { recolour: { e38628: DAY.ember, fdbe53: DAY.emberLight } });
+  blit(c, tinyTown(93), 5 * 16, 0, { recolour: { e38628: DAY.volt, fdbe53: DAY.voltLight } });
+  blit(c, tinyTown(43), 6 * 16, 0, { recolour: { c0cbdc: DAY.stoneLight } });
+  blit(c, tinyTown(16), 7 * 16, 0, { recolour: { "479f4a": DAY.bloom, "84c669": DAY.bloomLight } });
+  // The pond is drawn, in Tiny Town's way (an outline), since the pack has no water.
   for (let y = 0; y < 16; y++)
     for (let x = 0; x < 16; x++) {
       const d = Math.hypot((x + 0.5 - 8) / 6.5, (y + 0.5 - 8.5) / 5.5);
       if (d > 1) continue;
       const rim = d > 0.82;
-      c.set(4 * 16 + x, y, rim ? OUTLINE : (x + y * 2) % 7 === 0 && d < 0.7 ? TONE.tide.light : y < 7 ? TONE.tide.main : TONE.tide.dark);
+      c.set(4 * 16 + x, y, rim ? DAY.ink : (x + y * 2) % 7 === 0 && d < 0.7 ? DAY.tideLight : DAY.tide);
     }
   for (let mask = 0; mask < 16; mask++) pathTile(c, (PATH_FIRST + mask) * 16, mask);
   // Glowmire, a bog at night: cooler, bluer grass (the light map darkens it further), cobbles, and water with ripple lines.

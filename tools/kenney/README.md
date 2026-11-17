@@ -16,4 +16,5 @@ is appreciated). `License.txt` is the pack's own. The enemies' Tiny Creatures (`
 | 0043 | rock terrain (Stone): cobbles |
 | 0016 | grove terrain (Bloom): a green tree |
 
-The pack has no water, so the pool terrain (Tide) and Glowmire's night tiles are drawn in `make-art.ts`.
+Every colour is put to a small, quiet day palette (`DAY` in `make-art.ts`): two greens for grass, three tans for the road, one ink for
+outlines, one for flowers, and a dark and a light of each type's colour for its terrain. The pack has no water, so the pool terrain (Tide) and Glowmire's night tiles are drawn in `make-art.ts`.
