@@ -75,3 +75,9 @@ export const TILE_FRAME = {
   lantern: 12,
   mushroom: 13,
 } as const;
+
+/** A `#rrggbb` colour as three numbers 0 to 1, for a shader's `params`. */
+export function rgbOf(hex: string): [number, number, number] {
+  const n = parseInt(hex.slice(1, 7), 16);
+  return [((n >> 16) & 255) / 255, ((n >> 8) & 255) / 255, (n & 255) / 255];
+}

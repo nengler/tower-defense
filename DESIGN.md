@@ -161,6 +161,16 @@ more hit points each wave than elsewhere, since the long path gives the creature
 (Volt), rock (Stone) and grove (Bloom). A creature standing on its own type's terrain is **attuned**: +2 to every stat (shown on its
 card, and as a dot by it). Terrain sits beside the bends, so the best tiles for coverage and for attunement pull against each other.
 
+**Effects drawn with shaders** (each a layer holding just what it changes; the software renderer runs none, and shows the plain
+picture: a white flash, a fade, still tiles):
+
+- **A hit** (`hit.glsl`): for a tenth of a second the enemy's sprite gets a rim in its type's colour, a red and blue split and a
+  pixel of shake, over the engine's white flash.
+- **A death** (`dissolve.glsl`, `src/Fallen.tsx`): the sprite stays where it fell and crumbles away pixel by pixel over 0.4 s, the
+  crumbling edge burning in its type's colour.
+- **Terrain** (`terrain.glsl`): each type's tiles are a layer that keeps moving, so attuning tiles stand out: ash embers twinkle
+  over a heat shimmer, pools ripple, pylons crackle, rock glints, groves rustle.
+
 **Glowmire's night** is drawn with the engine's layers, lights and shaders (`src/Night.tsx`, `assets/*.glsl`):
 
 - A light map (`<Lighting>`) darkens the field to a moonlit blue except where a light reaches: flickering lanterns, breathing
@@ -215,6 +225,8 @@ Between waves the bar shows **what the next wave brings**: each enemy kind's wal
 ## Enemies
 
 Enemies never hurt creatures. The first four are plain; the rest get in the way of a plan instead.
+
+Their sprites are from **Tiny Creatures** by Clint Bellanger (CC0; `tools/tiny-creatures/`), each picked so its colour is its type's.
 
 | Enemy | Type | Does |
 | --- | --- | --- |

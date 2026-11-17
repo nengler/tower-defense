@@ -1,4 +1,4 @@
-import { after, AnimatedSprite, cancelTimer, Collider, Entity, send, Shape, useMutable, useUpdate } from "@tsengine/runtime/jsx";
+import { after, AnimatedSprite, cancelTimer, Collider, Entity, Layer, send, Shape, useMutable, useUpdate } from "@tsengine/runtime/jsx";
 
 import { PLAIN_BLAST, type Reacted } from "./battle.ts";
 import { useGame } from "./GameState.ts";
@@ -16,7 +16,7 @@ import {
   typeNow,
   type EnemyKind,
 } from "./rules/enemies.ts";
-import { ENEMY_ANIMATIONS } from "./rules/draw.ts";
+import { ENEMY_ANIMATIONS, rgbOf } from "./rules/draw.ts";
 import { mapOf, pathAt } from "./rules/map.ts";
 import { CHAIN_SHARE, REACTION_OF, REACTION_RADIUS, ROOT_FOR, SHATTER_SHARE, type Status } from "./rules/moves.ts";
 import { TYPE_COLOR, typeFactor, type Type } from "./rules/types.ts";
@@ -164,19 +164,36 @@ export function Enemy({ id, kind, maxHp, startDist, pace, onKilled, onLeaked, on
         <Shape kind="circle" width={info.size * scale + 4} height={info.size * scale + 4} x={-(info.size * scale) / 2 - 2} y={-(info.size * scale) / 2 - 2} color={TYPE_COLOR[type]} opacity={0.45} />
       )}
       {hidden && <Shape kind="rect" width={8} height={3} x={-4} y={1} color="#4e4232" />}
-      <AnimatedSprite
-        sheet="enemies.png"
-        frameWidth={16}
-        frameHeight={16}
-        animations={ENEMY_ANIMATIONS}
-        animation={kind}
-        originX={8}
-        originY={9}
-        scaleX={scale}
-        scaleY={scale}
-        flash={s.flash ? 0.8 : 0}
-        opacity={hidden ? 0.3 : 1}
-      />
+      {s.flash ? (
+        <Layer shader="hit.glsl" params={rgbOf(TYPE_COLOR[type])}>
+          <AnimatedSprite
+            sheet="enemies.png"
+            frameWidth={16}
+            frameHeight={16}
+            animations={ENEMY_ANIMATIONS}
+            animation={kind}
+            originX={8}
+            originY={9}
+            scaleX={scale}
+            scaleY={scale}
+            flash={0.5}
+            opacity={hidden ? 0.3 : 1}
+          />
+        </Layer>
+      ) : (
+        <AnimatedSprite
+          sheet="enemies.png"
+          frameWidth={16}
+          frameHeight={16}
+          animations={ENEMY_ANIMATIONS}
+          animation={kind}
+          originX={8}
+          originY={9}
+          scaleX={scale}
+          scaleY={scale}
+          opacity={hidden ? 0.3 : 1}
+        />
+      )}
       {s.stun > 0 && <Shape kind="rect" width={info.size + 2} height={1} x={-half - 1} y={-half - 2} color="#ffffff" />}
       {s.soak > 0 && <Shape kind="rect" width={2} height={2} x={half} y={-half} color={TYPE_COLOR.tide} />}
       {s.burnFor > 0 && <Shape kind="rect" width={2} height={2} x={-half - 2} y={-half} color={TYPE_COLOR.ember} />}
@@ -220,7 +237,7 @@ export function Enemy({ id, kind, maxHp, startDist, pace, onKilled, onLeaked, on
             s.boost = Math.min(SPRINT_CAP, s.boost * (info.sprint ?? 1));
             cancelTimer(s.flashTimer);
             s.flash = true;
-            s.flashTimer = after(0.08, () => {
+            s.flashTimer = after(0.1, () => {
               s.flash = false;
             });
           }
