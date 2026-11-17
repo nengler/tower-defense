@@ -1,10 +1,15 @@
 import type { MoveId } from "./moves.ts";
-import { addXp, knownAt, slotsFor } from "./progress.ts";
-import type { SpeciesId } from "./species.ts";
+import { addXp, learnLevel, slotsFor } from "./progress.ts";
+import { EVOLVE_AT, FORMS, SPECIES, type FormId, type SpeciesId } from "./species.ts";
 import { COLS, isPath, ROWS } from "./map.ts";
 
 /** At most this many creatures on the field at once. */
 export const FIELD_LIMIT = 5;
+
+/** A choice waiting for the player: two moves at a learn step, or two forms at `EVOLVE_AT`. */
+export type Choice =
+  | { readonly kind: "move"; readonly options: readonly MoveId[] }
+  | { readonly kind: "form"; readonly options: readonly FormId[] };
 
 /** A creature the player owns this run. */
 export interface Owned {
@@ -13,21 +18,76 @@ export interface Owned {
   readonly level: number;
   /** XP toward the next level. */
   readonly xp: number;
-  /** Its species' mastery when it joined: what it starts knowing, when it learns, and its slots. */
+  /** Its species' mastery when it joined: when it learns, and its slots. */
   readonly mastery: number;
   /** Every move it knows, in the order it learned them. */
   readonly known: readonly MoveId[];
   /** The moves it uses, in the order it tries them. At most `slotsFor(mastery)`. */
   readonly equipped: readonly MoveId[];
+  /** How many of its species' learn steps are behind it (learned, or picked from). */
+  readonly step: number;
+  /** A choice waiting for the player, or null. While one waits, later steps wait behind it. */
+  readonly choice: Choice | null;
+  /** The form it evolved into, or "". */
+  readonly form: FormId | "";
   /** The tile it stands on, or -1 for the bench. */
   readonly col: number;
   readonly row: number;
 }
 
-/** A new creature at level 1, on the bench, with what it knows equipped (as many as fit). */
+/** Learn a move: known, and equipped in place of `replace` if given, else at the end if a slot is free. */
+function teach(c: Owned, move: MoveId, replace: MoveId | ""): Owned {
+  if (c.known.includes(move)) return c;
+  const known = [...c.known, move];
+  if (replace !== "" && c.equipped.includes(replace)) return { ...c, known, equipped: c.equipped.map((m) => (m === replace ? move : m)) };
+  const equipped = c.equipped.length < slotsFor(c.mastery) ? [...c.equipped, move] : c.equipped;
+  return { ...c, known, equipped };
+}
+
+/**
+ * Bring a creature's learning up to its level: each step it has reached is learned outright when it has one move to offer, or
+ * becomes its choice when it has two; at `EVOLVE_AT`, with every step behind it, its two forms are. Nothing changes while a choice
+ * waits.
+ */
+export function offerNext(c: Owned): Owned {
+  let cur = c;
+  for (;;) {
+    if (cur.choice !== null) return cur;
+    const learns = SPECIES[cur.species].learns;
+    if (cur.step < learns.length) {
+      if (learnLevel(cur.species, cur.step, cur.mastery) > cur.level) return cur;
+      const options = learns[cur.step]!.options.filter((m) => !cur.known.includes(m));
+      if (options.length >= 2) return { ...cur, choice: { kind: "move", options } };
+      cur = { ...(options.length === 1 ? teach(cur, options[0]!, "") : cur), step: cur.step + 1 };
+      continue;
+    }
+    if (cur.form === "" && cur.level >= EVOLVE_AT) return { ...cur, choice: { kind: "form", options: SPECIES[cur.species].forms } };
+    return cur;
+  }
+}
+
+/** A new creature at level 1, on the bench, knowing its first move (and offered its first choice with mastery 1). */
 export function newCreature(id: number, species: SpeciesId, mastery: number): Owned {
-  const known = knownAt(species, 1, mastery);
-  return { id, species, level: 1, xp: 0, mastery, known, equipped: known.slice(0, slotsFor(mastery)), col: -1, row: -1 };
+  return offerNext({ id, species, level: 1, xp: 0, mastery, known: [], equipped: [], step: 0, choice: null, form: "", col: -1, row: -1 });
+}
+
+/**
+ * The player picks `move` from creature `id`'s waiting choice: it is learned, and equipped in place of `replace` (a move it has
+ * equipped) or, with "", into a free slot if there is one (else it waits in its list). Then any later step it has reached comes up.
+ */
+export function learn(roster: readonly Owned[], id: number, move: MoveId, replace: MoveId | ""): readonly Owned[] {
+  return update(roster, id, (c) => {
+    if (c.choice?.kind !== "move" || !c.choice.options.includes(move)) return c;
+    return offerNext({ ...teach(c, move, replace), choice: null, step: c.step + 1 });
+  });
+}
+
+/** The player picks the form creature `id` evolves into: it takes the form and learns its move (as `learn` does). */
+export function evolve(roster: readonly Owned[], id: number, form: FormId, replace: MoveId | ""): readonly Owned[] {
+  return update(roster, id, (c) => {
+    if (c.choice?.kind !== "form" || !c.choice.options.includes(form)) return c;
+    return { ...teach(c, FORMS[form].move, replace), choice: null, form };
+  });
 }
 
 export function onField(roster: readonly Owned[]): Owned[] {
@@ -39,17 +99,17 @@ export function standingAt(roster: readonly Owned[], col: number, row: number): 
 }
 
 /** Can creature `id` go on this tile: on the field, not path, free, and (if it comes from the bench) under the limit. */
-export function canPlace(roster: readonly Owned[], id: number, col: number, row: number): boolean {
+export function canPlace(roster: readonly Owned[], map: string, id: number, col: number, row: number): boolean {
   const c = roster.find((o) => o.id === id);
   if (c === undefined) return false;
-  if (col < 0 || col >= COLS || row < 0 || row >= ROWS || isPath(col, row)) return false;
+  if (col < 0 || col >= COLS || row < 0 || row >= ROWS || isPath(map, col, row)) return false;
   if (standingAt(roster, col, row) !== undefined) return false;
   return c.col >= 0 || onField(roster).length < FIELD_LIMIT;
 }
 
 /** Put creature `id` on a tile (from the bench or from another tile). Unchanged if it cannot go there. */
-export function place(roster: readonly Owned[], id: number, col: number, row: number): readonly Owned[] {
-  if (!canPlace(roster, id, col, row)) return roster;
+export function place(roster: readonly Owned[], map: string, id: number, col: number, row: number): readonly Owned[] {
+  if (!canPlace(roster, map, id, col, row)) return roster;
   return roster.map((c) => (c.id === id ? { ...c, col, row } : c));
 }
 
@@ -58,19 +118,12 @@ export function bench(roster: readonly Owned[], id: number): readonly Owned[] {
   return roster.map((c) => (c.id === id ? { ...c, col: -1, row: -1 } : c));
 }
 
-/**
- * Creature `id` earns XP. On a level-up it learns what its species learns by then; a new move is equipped if a slot is free, and
- * otherwise waits in its move list for the player to swap in.
- */
+/** Creature `id` earns XP. On a level-up, whatever it has reached comes up: a move learned, or a choice for the player. */
 export function earn(roster: readonly Owned[], id: number, amount: number): readonly Owned[] {
-  return roster.map((c) => {
-    if (c.id !== id) return c;
+  return update(roster, id, (c) => {
     const leveled = addXp(c.level, c.xp, amount);
     if (leveled.gained === 0) return { ...c, xp: leveled.xp };
-    const learned = knownAt(c.species, leveled.level, c.mastery).filter((m) => !c.known.includes(m));
-    const slots = slotsFor(c.mastery);
-    const equipped = [...c.equipped, ...learned].slice(0, Math.max(slots, c.equipped.length));
-    return { ...c, level: leveled.level, xp: leveled.xp, known: [...c.known, ...learned], equipped };
+    return offerNext({ ...c, level: leveled.level, xp: leveled.xp });
   });
 }
 

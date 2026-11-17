@@ -1,62 +1,83 @@
 import { Entity, Hud, ParticleLayer, useInput, useMutable, useUpdate } from "@tsengine/runtime/jsx";
 
+import { Banner } from "./Banner.tsx";
 import { Bar } from "./Bar.tsx";
 import { Card } from "./Card.tsx";
-import type { Effect as Used, Foe, Placed } from "./battle.ts";
+import type { Effect as Used, Foe, Mark as Laid, Placed, Reacted } from "./battle.ts";
 import { Creature } from "./Creature.tsx";
 import { Effect } from "./Effect.tsx";
 import { fx, sfx } from "./effects.ts";
 import { Enemy } from "./Enemy.tsx";
 import { Field } from "./Field.tsx";
+import { Mark } from "./Mark.tsx";
 import { Offer } from "./Offer.tsx";
 import { useGame } from "./GameState.ts";
 import { Pause } from "./Pause.tsx";
 import { Popup } from "./Popup.tsx";
+import { Prompt } from "./Prompt.tsx";
 import { save } from "./save.ts";
 import { ENEMIES, hpOf, type EnemyKind } from "./rules/enemies.ts";
-import { MOVES } from "./rules/moves.ts";
-import { TYPE_COLOR } from "./rules/types.ts";
-import { centre } from "./rules/map.ts";
+import { centre, mapOf, TERRAIN_BONUS, TILE, terrainAt } from "./rules/map.ts";
+import { tilesUnder } from "./rules/marks.ts";
+import { MOVES, REACTION_COLOR, REACTION_RADIUS } from "./rules/moves.ts";
 import { creatureById, onField } from "./rules/roster.ts";
+import { SPECIES } from "./rules/species.ts";
+import { hpScale, milestonesFor, speedScale, startLives } from "./rules/tiers.ts";
+import { TYPE_COLOR } from "./rules/types.ts";
 import { Tiles } from "./Tiles.tsx";
 import { MILESTONES, spawnsOf, WAVE_COUNT } from "./rules/waves.ts";
 
-/** Lives a run starts with. */
-export const START_LIVES = 10;
+/** Lives a run at tier 0 starts with. */
+export const START_LIVES = startLives(0);
 
 /**
- * The battle. It keeps what the whole battle shares: the lives, the wave and its spawner, and the lists of enemies and of moves
- * landing, which it draws as components that each keep their own state; the creatures on the field come from the roster. An enemy
- * reports up when it dies, gets through or takes damage (its attacker's XP); a creature when a move lands. Pressing a tile selects
- * the creature on it or puts the selected one there; Backspace benches the selected one, and 1 to 9 select a creature by its place
- * in the bar. The bar's button (or Space) starts the next wave. The selected creature's card shows over the field (its moves can
- * be changed at any time); Escape closes it, or pauses. Before each wave in `MILESTONES` a milestone offers a new creature, and no
- * wave starts until one is taken.
+ * The battle. It keeps what the whole battle shares: the lives, the wave and its spawner, and the lists of enemies, of moves landing
+ * and of marks on the path, which it draws as components that each keep their own state; the creatures on the field come from the
+ * roster. An enemy reports up when it dies (a brood splits into mites where it fell), gets through, takes damage (its attacker's XP)
+ * or sets off a reaction; a creature when a move lands, which may lay marks on the path tiles it covers.
+ *
+ * Pressing a tile selects the creature on it or puts the selected one there; Backspace benches the selected one, and 1 to 9 select a
+ * creature by its place in the bar. The bar's button (or Space) starts the next wave; its ELITE (or E) makes that wave elite, when a
+ * milestone follows it. When a creature has a choice waiting, a banner says so and N (or the banner) opens its prompt; the battle
+ * stands still while the prompt is open. The selected creature's card shows over the field (its moves can be changed at any time);
+ * Escape closes it, or pauses. Before each milestone wave a creature is offered, and no wave starts until one is taken.
  */
 export function Play() {
   const paused = useGame((s) => s.paused);
   const team = useGame((s) => s.roster);
   const selectedId = useGame((s) => s.selected);
+  const map = useGame((s) => s.map);
+  const tier = useGame((s) => s.tier);
+  const eliteNext = useGame((s) => s.elite);
+  const prompting = useGame((s) => s.prompting);
   const chosen = creatureById(team, selectedId);
   const offering = useGame((s) => s.offer.length > 0);
-  const { pause, finish, gainXp, benchSelected, choose, deselect, milestone, awardWave } = useGame.actions();
+  const waiting = team.some((c) => c.choice !== null);
+  const { pause, finish, gainXp, benchSelected, choose, deselect, milestone, awardWave, toggleElite, toggleSpeed, openNextPrompt } =
+    useGame.actions();
 
   const s = useMutable({
-    lives: START_LIVES as number,
-    /** Waves started so far, and whether one is on (enemies still to come or alive). */
+    lives: startLives(tier) as number,
+    /** Waves started so far, and whether one is on (enemies still to come or alive), and whether it is elite. */
     wave: 0,
     active: false,
+    elite: false,
     /** Seconds since the wave started, and how many of its enemies have come. */
     clock: 0,
     spawned: 0,
-    enemies: [] as readonly Foe[],
-    /** Moves landing on the field. */
-    effects: [] as readonly Placed[],
+    enemies: [] as Foe[],
+    /** Moves and reactions landing on the field. */
+    effects: [] as Placed[],
+    /** Marks on path tiles, one a tile. */
+    marks: [] as Laid[],
     /** Damage numbers rising from hits (the newest 30). */
     popups: [] as readonly { readonly id: number; readonly x: number; readonly y: number; readonly amount: number; readonly combo: boolean }[],
     nextId: 1,
   });
-  const spawns = spawnsOf(s.wave);
+  const spawns = spawnsOf(s.wave, tier);
+  const milestones = milestonesFor(tier, MILESTONES);
+  /** A milestone follows the next wave: it may be made elite. */
+  const canElite = !s.active && s.wave < WAVE_COUNT && milestones.includes(s.wave + 2);
 
   useUpdate((dt) => {
     if (s.lives <= 0) {
@@ -69,14 +90,14 @@ export function Play() {
       s.active = false;
       awardWave();
       if (s.wave >= WAVE_COUNT) finish(true, s.wave);
-      else if (MILESTONES.includes(s.wave + 1)) milestone();
+      else if (milestones.includes(s.wave + 1)) milestone(s.elite);
       save.write();
       return;
     }
     s.clock += dt;
     while (s.spawned < spawns.length && spawns[s.spawned]!.at <= s.clock) {
       const kind = spawns[s.spawned]!.kind;
-      s.enemies = [...s.enemies, { id: s.nextId, kind, maxHp: hpOf(kind, s.wave) }];
+      s.enemies.push({ id: s.nextId, kind, maxHp: Math.round(hpOf(kind, s.wave) * hpScale(tier, s.elite)), startDist: 0 });
       s.spawned += 1;
       s.nextId += 1;
     }
@@ -88,6 +109,9 @@ export function Play() {
       else pause();
     }
     if (input.pressed("Backspace")) benchSelected();
+    if (input.pressed("N")) openNextPrompt();
+    if (input.pressed("F")) toggleSpeed();
+    if (input.pressed("E") && canElite) toggleElite();
     for (let n = 1; n <= 9; n++) if (input.pressed(`${n}`)) choose(n - 1);
   });
 
@@ -95,14 +119,29 @@ export function Play() {
     if (s.active || s.wave >= WAVE_COUNT || offering) return;
     s.wave += 1;
     s.active = true;
+    s.elite = eliteNext && milestones.includes(s.wave + 1);
+    if (eliteNext) toggleElite();
     sfx.play("wave");
     s.clock = 0;
     s.spawned = 0;
   };
-  const killed = (id: number, x: number, y: number) => {
-    // The puff in the fallen enemy's type colour.
-    const kind = s.enemies.find((e) => e.id === id)?.kind ?? "crawler";
+  const killed = (id: number, x: number, y: number, dist: number) => {
+    // The puff in the fallen enemy's type colour; a brood's mites start where it fell.
+    const foe = s.enemies.find((e) => e.id === id);
+    const kind = foe?.kind ?? "crawler";
     s.enemies = s.enemies.filter((e) => e.id !== id);
+    const split = ENEMIES[kind].split;
+    if (split !== undefined) {
+      for (let i = 0; i < split.count; i++) {
+        s.enemies.push({
+          id: s.nextId,
+          kind: split.into,
+          maxHp: Math.round(hpOf(split.into, s.wave) * hpScale(tier, s.elite)),
+          startDist: Math.max(0, dist - i * 5),
+        });
+        s.nextId += 1;
+      }
+    }
     fx.burst("die", x, y, { color: TYPE_COLOR[ENEMIES[kind].type] });
     sfx.play("die");
   };
@@ -119,6 +158,25 @@ export function Play() {
       sfx.play("combo");
     }
   };
+  const reacted = (r: Reacted) => {
+    const radius = REACTION_RADIUS[r.reaction];
+    s.effects.push({
+      id: s.nextId,
+      move: "spark",
+      color: REACTION_COLOR[r.reaction],
+      from: -1,
+      userType: "ember",
+      mark: "",
+      markBurn: 0,
+      fromX: r.x,
+      fromY: r.y,
+      x: r.x,
+      y: r.y,
+      radius,
+    });
+    s.nextId += 1;
+    fx.burst("combo", r.x, r.y, { color: REACTION_COLOR[r.reaction] });
+  };
   const popped = (id: number) => {
     s.popups = s.popups.filter((p) => p.id !== id);
   };
@@ -128,16 +186,34 @@ export function Play() {
   const used = (effect: Used) => {
     const shape = MOVES[effect.move].shape;
     sfx.play(shape === "buff" ? "buff" : shape === "hit" ? "hit" : "area");
-    s.effects = [...s.effects, { ...effect, id: s.nextId }];
+    s.effects.push({ ...effect, id: s.nextId });
     s.nextId += 1;
+    if (effect.mark === "") return;
+    // The mark goes on every path tile the area covers, in place of what was there.
+    const mark = effect.mark;
+    const keys = tilesUnder(mapOf(map).pathTiles, effect.x, effect.y, effect.radius, TILE);
+    const kept = s.marks.filter((m) => !keys.includes(m.key));
+    const laid: Laid[] = [];
+    for (const key of keys) {
+      const parts = key.split(",");
+      laid.push({ id: s.nextId, key, col: Number(parts[0]), row: Number(parts[1]), kind: mark, from: effect.from, burn: effect.markBurn, userType: effect.userType });
+      s.nextId += 1;
+    }
+    s.marks = [...kept, ...laid];
   };
   const shown = (id: number) => {
     s.effects = s.effects.filter((e) => e.id !== id);
+  };
+  const faded = (id: number) => {
+    s.marks = s.marks.filter((m) => m.id !== id);
   };
 
   return (
     <Entity>
       <Field />
+      {s.marks.map((m) => (
+        <Mark key={m.id} id={m.id} col={m.col} row={m.row} kind={m.kind} from={m.from} userType={m.userType} burn={m.burn} onDone={faded} />
+      ))}
       <Tiles />
       {onField(team).map((c) => (
         <Creature
@@ -145,6 +221,8 @@ export function Play() {
           id={c.id}
           species={c.species}
           level={c.level}
+          form={c.form}
+          terrain={terrainAt(map, c.col, c.row) === SPECIES[c.species].type ? TERRAIN_BONUS : 0}
           equipped={c.equipped}
           x={centre(c.col, c.row).x}
           y={centre(c.col, c.row).y}
@@ -153,18 +231,32 @@ export function Play() {
         />
       ))}
       {s.enemies.map((e) => (
-        <Enemy key={e.id} {...e} onKilled={killed} onLeaked={leaked} onDamaged={damaged} onHit={hit} />
+        <Enemy
+          key={e.id}
+          id={e.id}
+          kind={e.kind}
+          maxHp={e.maxHp}
+          startDist={e.startDist}
+          pace={speedScale(tier)}
+          onKilled={killed}
+          onLeaked={leaked}
+          onDamaged={damaged}
+          onHit={hit}
+          onReaction={reacted}
+        />
       ))}
       {s.effects.map((e) => (
-        <Effect key={e.id} {...e} onDone={shown} />
+        <Effect key={e.id} id={e.id} color={e.color} fromX={e.fromX} fromY={e.fromY} x={e.x} y={e.y} radius={e.radius} onDone={shown} />
       ))}
       <ParticleLayer particles={fx} />
       {s.popups.map((p) => (
         <Popup key={p.id} {...p} onDone={popped} />
       ))}
       <Hud>
-        <Bar lives={s.lives} wave={s.wave} active={s.active} onStartWave={startWave} />
-        {chosen !== undefined && <Card creature={chosen} />}
+        <Bar lives={s.lives} wave={s.wave} active={s.active} canElite={canElite} onStartWave={startWave} />
+        {waiting && prompting < 0 && <Banner />}
+        {chosen !== undefined && prompting < 0 && <Card creature={chosen} />}
+        {prompting >= 0 && <Prompt />}
         {offering && <Offer />}
         {paused && <Pause />}
       </Hud>

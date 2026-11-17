@@ -1,3 +1,5 @@
+import type { Type } from "./types.ts";
+
 /** The field: a 20 × 9 grid of 16 px tiles, the top 320 × 144 of the screen. The bar is under it. */
 export const TILE = 16;
 export const COLS = 20;
@@ -43,41 +45,195 @@ export function pathAt(path: Path, distance: number): Point {
 /** The middle of a tile. */
 export const centre = (col: number, row: number): Point => ({ x: col * TILE + TILE / 2, y: row * TILE + TILE / 2 });
 
+/** The tile a point is on, as `col,row`. */
+export const tileKey = (col: number, row: number): string => `${col},${row}`;
+
+export type MapId = "meadow" | "riverbend" | "gauntlet";
+
+export const MAP_IDS: readonly MapId[] = ["meadow", "riverbend", "gauntlet"];
+
 /**
- * The path's corners as tiles, from just off the left edge to just off the right. Every segment is straight across or down, so
- * the tiles it crosses are the path.
+ * A map: its path and its terrain. Terrain tiles are tiles a creature may stand on; one standing on its own type's terrain is
+ * attuned (`TERRAIN_BONUS` to every stat), so where a creature stands is a choice even though moving it is free.
  */
-const CORNERS: readonly (readonly [number, number])[] = [
-  [-1, 1],
-  [4, 1],
-  [4, 6],
-  [9, 6],
-  [9, 2],
-  [14, 2],
-  [14, 7],
-  [20, 7],
-];
+export interface GameMap {
+  readonly id: MapId;
+  readonly name: string;
+  /** One line for the run setup. */
+  readonly text: string;
+  readonly path: Path;
+  /** Every tile the path crosses, as `col,row`. */
+  readonly pathTiles: ReadonlySet<string>;
+  /** The terrain tiles, `col,row` to the type they attune. */
+  readonly terrain: ReadonlyMap<string, Type>;
+}
 
-export const PATH = makePath(CORNERS.map(([col, row]) => centre(col, row)));
+/** What standing on its own type's terrain adds to each of a creature's stats. */
+export const TERRAIN_BONUS = 2;
 
-/** Every tile the path crosses, as `col,row`. */
-function pathTiles(): ReadonlySet<string> {
+/** Every tile a path through these corners crosses. Every segment is straight across or down. */
+function tilesOf(corners: readonly (readonly [number, number])[]): ReadonlySet<string> {
   const tiles = new Set<string>();
-  for (let i = 1; i < CORNERS.length; i++) {
-    const [c0, r0] = CORNERS[i - 1] as readonly [number, number];
-    const [c1, r1] = CORNERS[i] as readonly [number, number];
+  for (let i = 1; i < corners.length; i++) {
+    const [c0, r0] = corners[i - 1] as readonly [number, number];
+    const [c1, r1] = corners[i] as readonly [number, number];
     const steps = Math.max(Math.abs(c1 - c0), Math.abs(r1 - r0));
     for (let k = 0; k <= steps; k++) {
       const col = c0 + Math.sign(c1 - c0) * k;
       const row = r0 + Math.sign(r1 - r0) * k;
-      if (col >= 0 && col < COLS && row >= 0 && row < ROWS) tiles.add(`${col},${row}`);
+      if (col >= 0 && col < COLS && row >= 0 && row < ROWS) tiles.add(tileKey(col, row));
     }
   }
   return tiles;
 }
 
-export const PATH_TILES = pathTiles();
+/**
+ * A map from its corners (as tiles, from just off the left edge to just off the right) and its terrain (tiles by type). Throws if a
+ * terrain tile is on the path or off the grid, so a typo in a table is caught when the module loads.
+ */
+function makeMap(
+  id: MapId,
+  name: string,
+  text: string,
+  corners: readonly (readonly [number, number])[],
+  terrain: Readonly<Record<Type, readonly (readonly [number, number])[]>>
+): GameMap {
+  const pathTiles = tilesOf(corners);
+  const tiles = new Map<string, Type>();
+  for (const [type, spots] of Object.entries(terrain) as [Type, readonly (readonly [number, number])[]][]) {
+    for (const [col, row] of spots) {
+      const key = tileKey(col, row);
+      if (pathTiles.has(key) || col < 0 || col >= COLS || row < 0 || row >= ROWS || tiles.has(key))
+        throw new Error(`${id}: terrain at ${key} is on the path, off the grid or twice`);
+      tiles.set(key, type);
+    }
+  }
+  return { id, name, text, path: makePath(corners.map(([col, row]) => centre(col, row))), pathTiles, terrain: tiles };
+}
 
-export function isPath(col: number, row: number): boolean {
-  return PATH_TILES.has(`${col},${row}`);
+export const MAPS: Readonly<Record<MapId, GameMap>> = {
+  meadow: makeMap(
+    "meadow",
+    "Meadow",
+    "A long winding path.",
+    [
+      [-1, 1],
+      [4, 1],
+      [4, 6],
+      [9, 6],
+      [9, 2],
+      [14, 2],
+      [14, 7],
+      [20, 7],
+    ],
+    {
+      tide: [
+        [5, 5],
+        [13, 6],
+      ],
+      volt: [
+        [8, 5],
+        [10, 3],
+      ],
+      stone: [
+        [3, 2],
+        [15, 6],
+      ],
+      ember: [
+        [5, 2],
+        [8, 3],
+      ],
+      bloom: [
+        [13, 3],
+        [10, 5],
+      ],
+    }
+  ),
+  riverbend: makeMap(
+    "riverbend",
+    "Riverbend",
+    "Tight bends, far apart.",
+    [
+      [-1, 4],
+      [6, 4],
+      [6, 1],
+      [12, 1],
+      [12, 7],
+      [17, 7],
+      [17, 3],
+      [20, 3],
+    ],
+    {
+      tide: [
+        [7, 2],
+        [16, 6],
+      ],
+      volt: [
+        [11, 2],
+        [3, 5],
+      ],
+      stone: [
+        [5, 3],
+        [14, 5],
+      ],
+      ember: [
+        [13, 6],
+        [9, 0],
+      ],
+      bloom: [
+        [18, 4],
+        [9, 2],
+      ],
+    }
+  ),
+  gauntlet: makeMap(
+    "gauntlet",
+    "Gauntlet",
+    "One bend: all of it passes by.",
+    [
+      [-1, 2],
+      [10, 2],
+      [10, 6],
+      [20, 6],
+    ],
+    {
+      tide: [
+        [9, 3],
+        [15, 5],
+      ],
+      volt: [
+        [11, 5],
+        [5, 3],
+      ],
+      stone: [
+        [9, 7],
+        [6, 1],
+      ],
+      ember: [
+        [11, 1],
+        [15, 7],
+      ],
+      bloom: [
+        [5, 1],
+        [11, 3],
+      ],
+    }
+  ),
+};
+
+/**
+ * The map with this id. The game state keeps the run's map as a plain string (what a component reads of the state is typed by its
+ * first value), so lookups go through here; an id that is no map's is the first map.
+ */
+export function mapOf(id: string): GameMap {
+  return MAPS[id as MapId] ?? MAPS.meadow;
+}
+
+export function isPath(map: string, col: number, row: number): boolean {
+  return mapOf(map).pathTiles.has(tileKey(col, row));
+}
+
+/** The type a tile attunes, or null for plain grass and path. */
+export function terrainAt(map: string, col: number, row: number): Type | null {
+  return mapOf(map).terrain.get(tileKey(col, row)) ?? null;
 }

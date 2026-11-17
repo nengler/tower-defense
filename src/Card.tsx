@@ -1,11 +1,11 @@
 import { Flex, Text } from "@tsengine/runtime/jsx";
 
 import { useGame } from "./GameState.ts";
-import { FIELD_HEIGHT } from "./rules/map.ts";
+import { FIELD_HEIGHT, TERRAIN_BONUS, terrainAt } from "./rules/map.ts";
 import { MOVES } from "./rules/moves.ts";
 import { MAX_LEVEL, slotsFor, xpToNext } from "./rules/progress.ts";
 import type { Owned } from "./rules/roster.ts";
-import { SPECIES, statsAt } from "./rules/species.ts";
+import { FORMS, SPECIES, statsOf } from "./rules/species.ts";
 import { TYPE_COLOR } from "./rules/types.ts";
 
 /** Pixels across. */
@@ -16,7 +16,8 @@ interface CardProps {
 }
 
 /**
- * The selected creature's card, over the side of the field it is not on: its name, level and XP, its stats, and its moves. The
+ * The selected creature's card, over the side of the field it is not on: its name (or its form's), level and XP, its stats (with
+ * its terrain's bonus when it stands on its own type's terrain, ATTUNED), a CHOOSE button while a choice waits, and its moves. The
  * equipped moves are listed in the order it tries them, each with `UP` (try it earlier) and `x` (unequip); the moves it knows but has
  * not equipped follow, and pressing one equips it while a slot is free. All of it works mid-wave. `BENCH` takes it off the field,
  * `CLOSE` (or Escape) deselects it.
@@ -25,9 +26,11 @@ interface CardProps {
  * between two rows went through to the tile under the card and moved the creature there.
  */
 export function Card({ creature }: CardProps) {
-  const { equip, unequip, raise, benchSelected, deselect } = useGame.actions();
+  const { equip, unequip, raise, benchSelected, deselect, openPrompt } = useGame.actions();
+  const map = useGame((s) => s.map);
   const info = SPECIES[creature.species];
-  const stats = statsAt(creature.species, creature.level);
+  const attuned = creature.col >= 0 && terrainAt(map, creature.col, creature.row) === info.type;
+  const stats = statsOf(creature.species, creature.level, creature.form, attuned ? TERRAIN_BONUS : 0);
   const slots = slotsFor(creature.mastery);
   const spare = creature.known.filter((m) => !creature.equipped.includes(m));
   const full = creature.equipped.length >= slots;
@@ -51,7 +54,7 @@ export function Card({ creature }: CardProps) {
       onPress={() => {}}
     >
       <Flex direction="row" justifyContent="space-between" width="grow">
-        <Text color={TYPE_COLOR[info.type]}>{info.name}</Text>
+        <Text color={TYPE_COLOR[info.type]}>{creature.form === "" ? info.name : FORMS[creature.form].name}</Text>
         <Text>{`LV${creature.level}`}</Text>
       </Flex>
       <Flex width="grow" height={2} background="#2a2f40">
@@ -59,7 +62,14 @@ export function Card({ creature }: CardProps) {
       </Flex>
       <Text color="#a7b0c8">{`ATK ${stats.atk} SPD ${stats.spd}`}</Text>
       <Text color="#a7b0c8">{`RNG ${stats.rng} CD ${stats.cd}`}</Text>
-      {creature.mastery > 0 && <Text color="#f0d84a">{`MASTERY ${creature.mastery}`}</Text>}
+      {(creature.mastery > 0 || attuned) && (
+        <Text color="#f0d84a">{`${creature.mastery > 0 ? `MASTERY ${creature.mastery} ` : ""}${attuned ? "ATTUNED" : ""}`}</Text>
+      )}
+      {creature.choice !== null && (
+        <Flex width="grow" paddingX={2} background="#5a4a1a" onPress={() => openPrompt(creature.id)}>
+          <Text color="#ffe066">{creature.choice.kind === "form" ? "EVOLVE: CHOOSE" : "NEW MOVE: CHOOSE"}</Text>
+        </Flex>
+      )}
       <Text color="#6a7088">{`MOVES ${creature.equipped.length}/${slots}`}</Text>
       {creature.equipped.map((move, i) => (
         <Flex key={move} direction="row" gap={2} width="grow" alignItems="center">

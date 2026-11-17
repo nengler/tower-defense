@@ -1,14 +1,12 @@
 import { Entity, Line, Shape, useMutable, useUpdate } from "@tsengine/runtime/jsx";
 
-import { MOVES, type MoveId } from "./rules/moves.ts";
-import { TYPE_COLOR } from "./rules/types.ts";
 
 /** Seconds an effect stays on screen. */
 const SHOWN = 0.25;
 
 interface EffectProps {
   id: number;
-  move: MoveId;
+  color: string;
   fromX: number;
   fromY: number;
   x: number;
@@ -20,12 +18,12 @@ interface EffectProps {
 }
 
 /**
- * A move landing, for the eye only (the move itself was sent to what it landed on): a line from the creature to its target for a
- * hit, a disc for an area, fading out.
+ * A move landing or a reaction going off, for the eye only (the move itself was sent to what it landed on): a line from the
+ * creature to its target for a hit, a disc for an area, fading out.
  */
-export function Effect({ id, move, fromX, fromY, x, y, radius, onDone }: EffectProps) {
+export function Effect({ id, color, fromX, fromY, x, y, radius, onDone }: EffectProps) {
   const s = useMutable({ t: 0 });
-  const tint = TYPE_COLOR[MOVES[move].type];
+  const tint = color;
   const left = Math.max(0, 1 - s.t / SHOWN);
 
   useUpdate((dt) => {

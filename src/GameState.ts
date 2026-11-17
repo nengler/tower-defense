@@ -2,14 +2,29 @@ import { createGameState } from "@tsengine/runtime";
 
 import { setVolume, sfx } from "./effects.ts";
 
+import { MAP_IDS, mapOf, type MapId } from "./rules/map.ts";
 import type { MoveId } from "./rules/moves.ts";
-import { bench, earn, equipMove, newCreature, place, raiseMove, standingAt, unequipMove, type Owned } from "./rules/roster.ts";
+import {
+  bench,
+  creatureById,
+  earn,
+  equipMove,
+  evolve,
+  learn,
+  newCreature,
+  place,
+  raiseMove,
+  standingAt,
+  unequipMove,
+  type Owned,
+} from "./rules/roster.ts";
 import { MASTERY_PER_RUN, MASTERY_PER_WAVE, masteryLevel } from "./rules/progress.ts";
 import { pick } from "./rules/rng.ts";
-import { SPECIES_IDS, type SpeciesId } from "./rules/species.ts";
+import { SPECIES_IDS, type FormId, type SpeciesId } from "./rules/species.ts";
+import { ELITE_OFFER, TOP_TIER, type Daily } from "./rules/tiers.ts";
 import { OFFER_SIZE } from "./rules/waves.ts";
 
-type Screen = "title" | "settings" | "play" | "won" | "lost";
+type Screen = "title" | "settings" | "setup" | "play" | "won" | "lost";
 
 /**
  * What the screens share: which screen shows, whether play is paused, the settings, and the run's roster (the creatures owned,
@@ -33,26 +48,97 @@ export const useGame = createGameState(
     offer: [] as readonly SpeciesId[],
     /** What offers are rolled from: each run starts from the next seed, so runs differ but a test can replay one. */
     seed: 1,
-    /** Mastery points of each species: the one thing kept between runs (see `save.ts`). */
+    /** Mastery points of each species: kept between runs (see `save.ts`). */
     mastery: { emberling: 0, puddlepup: 0, voltkit: 0, pebblet: 0, sproutling: 0 } as Readonly<Record<SpeciesId, number>>,
+    /** The highest difficulty tier unlocked (winning at the top one unlocks the next): kept between runs. */
+    unlocked: 0,
+    /** The run's map and difficulty tier, chosen on the setup screen (or set by the daily run). */
+    map: "meadow" as MapId,
+    tier: 0,
+    /** The daily run's date while one is played, else "". */
+    daily: "",
+    /** Game speed: 1, or 2 for fast-forward. */
+    speed: 1,
+    /** The next wave is elite (tougher, and the milestone after it offers more). */
+    elite: false,
+    /** The creature whose learn prompt is open, or -1. The battle stands still while it is. */
+    prompting: -1,
   },
   {
-    /** A new run: no creatures, and the first milestone's offer. */
+    /** The title's Play: the setup screen, to pick a map and a tier. */
+    openSetup(s) {
+      s.screen = "setup";
+    },
+    /** Step through the maps. */
+    nextMap(s, by: number) {
+      const i = MAP_IDS.indexOf(mapOf(s.map).id);
+      s.map = MAP_IDS[(i + by + MAP_IDS.length) % MAP_IDS.length] as MapId;
+    },
+    /** Step through the tiers unlocked. */
+    nextTier(s, by: number) {
+      s.tier = Math.min(s.unlocked, Math.max(0, s.tier + by));
+    },
+    /** A new run on the chosen map and tier: no creatures, and the first milestone's offer. */
     start(s) {
       s.screen = "play";
       s.paused = false;
       s.roster = [];
       s.nextCreature = 1;
       s.selected = -1;
+      s.prompting = -1;
+      s.elite = false;
+      s.tier = Math.min(s.tier, s.unlocked);
+      s.daily = "";
       const rolled = pick(SPECIES_IDS, OFFER_SIZE, s.seed);
       s.offer = rolled.picked;
       s.seed = rolled.seed;
     },
-    /** A milestone: roll an offer. */
-    milestone(s) {
-      const rolled = pick(SPECIES_IDS, OFFER_SIZE, s.seed);
+    /** Today's run: its map, tier and seed are the day's, the same for everyone. */
+    startDaily(s, daily: Daily) {
+      s.map = daily.map;
+      s.seed = daily.seed;
+      useGame.actions().start();
+      // After `start`, which keeps a chosen tier to what is unlocked: the daily's tier is its own.
+      s.tier = daily.tier;
+      s.daily = daily.label;
+    },
+    /** A milestone: roll an offer, of more creatures after an elite wave. */
+    milestone(s, afterElite: boolean) {
+      const rolled = pick(SPECIES_IDS, afterElite ? ELITE_OFFER : OFFER_SIZE, s.seed);
       s.offer = rolled.picked;
       s.seed = rolled.seed;
+    },
+    /** Make the next wave elite, or not. */
+    toggleElite(s) {
+      s.elite = !s.elite;
+    },
+    /** Fast-forward on or off. */
+    toggleSpeed(s) {
+      s.speed = s.speed === 1 ? 2 : 1;
+    },
+    /** Open a creature's learn prompt (it must have a choice waiting). */
+    openPrompt(s, id: number) {
+      if (creatureById(s.roster, id)?.choice != null) s.prompting = id;
+    },
+    /** The first creature with a choice waiting: its prompt opens. */
+    openNextPrompt(s) {
+      const c = s.roster.find((o) => o.choice !== null);
+      if (c !== undefined) s.prompting = c.id;
+    },
+    closePrompt(s) {
+      s.prompting = -1;
+    },
+    /** The prompt's pick: the move learned (in place of `replace`, or into a free slot), and the prompt closed. */
+    chooseMove(s, move: MoveId, replace: MoveId | "") {
+      s.roster = learn(s.roster, s.prompting, move, replace);
+      s.prompting = -1;
+      sfx.play("level");
+    },
+    /** The prompt's pick of a form: it evolves, and learns the form's move. */
+    chooseForm(s, form: FormId, replace: MoveId | "") {
+      s.roster = evolve(s.roster, s.prompting, form, replace);
+      s.prompting = -1;
+      sfx.play("level");
     },
     /** Take a creature the offer has: it joins the roster on the bench, selected so a press on a tile places it. */
     takeOffer(s, species: SpeciesId) {
@@ -69,6 +155,7 @@ export const useGame = createGameState(
     toTitle(s) {
       s.screen = "title";
       s.paused = false;
+      s.daily = "";
     },
     pause(s) {
       s.paused = true;
@@ -97,6 +184,10 @@ export const useGame = createGameState(
       s.screen = won ? "won" : "lost";
       s.endWave = wave;
       s.paused = false;
+      s.prompting = -1;
+      s.speed = 1;
+      // A win at the top tier unlocked opens the next. The daily run's tier is set for it, so it unlocks nothing.
+      if (won && s.daily === "" && s.tier === s.unlocked) s.unlocked = Math.min(TOP_TIER, s.unlocked + 1);
     },
     /** Select the creature at this place in the roster (the bar's order), if there is one. */
     choose(s, index: number) {
@@ -119,7 +210,7 @@ export const useGame = createGameState(
       }
       if (s.selected < 0) return;
       const before = s.roster;
-      s.roster = place(s.roster, s.selected, col, row);
+      s.roster = place(s.roster, s.map, s.selected, col, row);
       if (s.roster !== before) sfx.play("pick");
     },
     /** Take the selected creature off the field. */

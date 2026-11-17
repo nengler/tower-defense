@@ -1,4 +1,3 @@
-import type { MoveId } from "./moves.ts";
 import { SPECIES, type SpeciesId } from "./species.ts";
 
 /** The highest level a creature reaches. */
@@ -43,18 +42,16 @@ export function slotsFor(mastery: number): number {
   return mastery >= 3 ? 4 : 3;
 }
 
-/** The level a species learns its `index`th move at, with mastery: from mastery 2, every move after the first two comes two levels earlier. */
+/**
+ * The level a species reaches its `index`th learn step at, with mastery: from mastery 1 the second step (its first choice) is offered
+ * at level 1, and from mastery 2 every step after that comes two levels earlier. Infinity past the last step.
+ */
 export function learnLevel(species: SpeciesId, index: number, mastery: number): number {
-  const learned = SPECIES[species].learns[index];
-  if (learned === undefined) return Infinity;
+  const step = SPECIES[species].learns[index];
+  if (step === undefined) return Infinity;
   if (index === 0) return 1;
   if (index === 1 && mastery >= 1) return 1;
-  return mastery >= 2 && index >= 2 ? Math.max(1, learned.level - 2) : learned.level;
-}
-
-/** The moves it knows at `level`, in the order it learned them. */
-export function knownAt(species: SpeciesId, level: number, mastery: number): MoveId[] {
-  return SPECIES[species].learns.filter((_, i) => learnLevel(species, i, mastery) <= level).map((l) => l.move);
+  return mastery >= 2 && index >= 2 ? Math.max(1, step.level - 2) : step.level;
 }
 
 /** The points the next mastery level needs, or null at the top. */
@@ -63,4 +60,4 @@ export function nextMasteryAt(points: number): number | null {
 }
 
 /** What a mastery level gives, in a few words. */
-export const MASTERY_TEXT: readonly string[] = ["", "STARTS WITH 2 MOVES", "LEARNS MOVES SOONER", "A 4TH MOVE SLOT"];
+export const MASTERY_TEXT: readonly string[] = ["", "FIRST CHOICE AT LV1", "LEARNS MOVES SOONER", "A 4TH MOVE SLOT"];

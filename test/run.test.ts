@@ -33,7 +33,7 @@ function play(script: string) {
 }
 
 test("the game itself: the creature taken at the start, placed by a click, holds most of wave 1 and earns XP", () => {
-  const { states } = play(`_*2, Enter, _*3, Enter, _*2, ${tile(3, 2)}, _, Space, _*2100`);
+  const { states } = play(`_*2, Enter, _*3, Enter, _*3, Enter, _*2, ${tile(3, 2)}, _, Space, _*2100`);
   const last = states[states.length - 1]!;
   assert.equal(last.placed, 1);
   assert.equal(last.wave, 1);
@@ -45,7 +45,7 @@ test("the game itself: the creature taken at the start, placed by a click, holds
 test("a milestone comes before wave 2: after wave 1 a second creature is offered, and Space waits for it", () => {
   const wave = `Space, _*2100`;
   // The second creature offered (right, then Enter): the Emberling, which holds the first two waves alone.
-  const { states } = play(`_*2, Enter, _*5, right, _, Enter, _*2, ${tile(3, 2)}, _, ${wave}, Space, _*5`);
+  const { states } = play(`_*2, Enter, _*3, Enter, _*5, right, _, Enter, _*2, ${tile(3, 2)}, _, ${wave}, Space, _*5`);
   const last = states[states.length - 1]!;
   assert.equal(last.screen, "play");
   assert.equal(last.wave, 1, "wave 2 did not start");
@@ -53,13 +53,13 @@ test("a milestone comes before wave 2: after wave 1 a second creature is offered
 });
 
 test("the same wave with nobody on the field costs a life per enemy", () => {
-  const { states } = play(`_*2, Enter, _*3, Enter, _*3, Space, _*2100`);
+  const { states } = play(`_*2, Enter, _*3, Enter, _*3, Enter, _*3, Space, _*2100`);
   assert.equal(states[states.length - 1]!.lives, 5);
 });
 
 test("a wave sounds like one: its horn, hits landing, enemies dying, and a level-up", () => {
   const before = { wave: sfx.plays("wave"), hit: sfx.plays("hit"), die: sfx.plays("die"), level: sfx.plays("level"), pick: sfx.plays("pick") };
-  play(`_*2, Enter, _*5, right, _, Enter, _*2, ${tile(3, 2)}, _, Space, _*2100`);
+  play(`_*2, Enter, _*3, Enter, _*5, right, _, Enter, _*2, ${tile(3, 2)}, _, Space, _*2100`);
   assert.equal(sfx.plays("wave") - before.wave, 1);
   assert.equal(sfx.plays("pick") - before.pick, 2, "taken, then placed");
   assert.ok(sfx.plays("hit") - before.hit > 5);
@@ -70,8 +70,8 @@ test("a wave sounds like one: its horn, hits landing, enemies dying, and a level
 test("a press on the card's own background stays on the card: the creature is not moved to the tile under it", () => {
   // The creature goes on (3, 2) and stays selected, so its card covers the right of the field. (15, 6) is a free tile under the
   // card's empty middle, and (6, 4) a free tile the card does not cover.
-  const { states } = play(`_*2, Enter, _*3, Enter, _*2, ${tile(3, 2)}, _*2, ${tile(15, 6)}, _*2`);
+  const { states } = play(`_*2, Enter, _*3, Enter, _*3, Enter, _*2, ${tile(3, 2)}, _*2, ${tile(15, 6)}, _*2`);
   assert.deepEqual(states[states.length - 1]!.at, ["3,2"], "the card took the press");
-  const moved = play(`_*2, Enter, _*3, Enter, _*2, ${tile(3, 2)}, _*2, ${tile(6, 4)}, _*2`);
+  const moved = play(`_*2, Enter, _*3, Enter, _*3, Enter, _*2, ${tile(3, 2)}, _*2, ${tile(6, 4)}, _*2`);
   assert.deepEqual(moved.states[moved.states.length - 1]!.at, ["6,4"], "a tile beside the card still takes one");
 });
