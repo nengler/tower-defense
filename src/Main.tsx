@@ -16,7 +16,7 @@ export default function Main() {
     save.load();
   });
   return (
-    <Game id="creature-td" title="tower-defense" width={320} height={180} background="#10131c" assets="assets" font="font.png" textSize={8} paused={paused}>
+    <Game id="creature-td" title="tower-defense" width={320} height={180} background="#10131c" assets="assets" font="tse:small" textSize={6} paused={paused}>
       <Screen width={320} height={180} fit="integer">
         {screen === "title" && <Title name="tower-defense" />}
         {screen === "settings" && <Settings />}
