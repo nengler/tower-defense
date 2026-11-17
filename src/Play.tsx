@@ -27,9 +27,6 @@ import { TYPE_COLOR } from "./rules/types.ts";
 import { Tiles } from "./Tiles.tsx";
 import { MILESTONES, spawnsOf, WAVE_COUNT } from "./rules/waves.ts";
 
-/** Lives a run at tier 0 starts with. */
-export const START_LIVES = startLives(0);
-
 /**
  * The battle. It keeps what the whole battle shares: the lives, the wave and its spawner, and the lists of enemies, of moves landing
  * and of marks on the path, which it draws as components that each keep their own state; the creatures on the field come from the
@@ -162,6 +159,7 @@ export function Play() {
     const radius = REACTION_RADIUS[r.reaction];
     s.effects.push({
       id: s.nextId,
+      // A reaction is no creature's move: only its colour, place and size are drawn.
       move: "spark",
       color: REACTION_COLOR[r.reaction],
       from: -1,

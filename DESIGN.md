@@ -6,12 +6,14 @@ field and which moves they have equipped, in what order.
 
 ## Runs
 
-- A **run** is 10 waves on one map. Every run starts fresh: no creatures, no levels.
+- A **run** is 10 waves on one of three maps, at a difficulty tier. Every run starts fresh: no creatures, no levels.
 - **Enemies cannot hurt creatures.** Enemies walk the path; each one that reaches the end costs a life. No lives left ends the run.
-- At **milestones** (before waves 1, 2, 4, 6, 8 and 10) you pick one new creature from an offer of three. A run starts with no
+- At **milestones** (before waves 1, 2, 4, 6, 8 and 10) you pick one new creature from an offer of three (four after an elite
+  wave, below). A run starts with no
   creatures: the first milestone gives the first one. The sixth is one more than the field holds.
 - You may own any number of creatures, but **at most 5 are on the field** at once. A creature goes on **any free tile** that is not
-  path. Placing, moving and taking a creature off the field are free.
+  path. Placing, moving and taking a creature off the field cost nothing, but a creature put on a tile (or moved) **settles for
+  1.5 s** before it acts, so chasing enemies around mid-wave is not free.
 - There are **no items and no money**.
 
 ## Creatures
@@ -29,9 +31,21 @@ Each creature belongs to a **species**, which sets its type, its base stats, how
 | Cooldown | CD | how long until a move is ready again |
 | Type | | how strong a move is against an enemy's type |
 
-**Levels.** A creature earns 1 XP per point of damage it deals; a level costs 40 × the level it is at. On a level-up its stats grow
-and it may learn a new move. A learned move goes into its move list; if a slot is free it is equipped, otherwise it waits there for
-the player. (A buffer earns nothing for the damage its buff helps deal: something to revisit.)
+**Levels.** A creature earns 1 XP per point of damage it deals; a level costs 40 × the level it is at. On a level-up its stats grow.
+
+**Learning is a choice.** A species learns in steps: one move at level 1, then at levels 3, 5 and 7 a **choice of two**. Two
+Emberlings in one run can grow apart (Cinder or Static Jolt, Rally or Heat Wave, Flare Burst or Wildfire). When a step is reached the
+choice waits: a banner says so, the creature's chip and card show `!`, and **N** (or the banner) opens the **learn prompt**, which
+stops the battle while it is open. With a free slot the pick is equipped there. With the slots full the prompt asks which equipped
+move it replaces, or whether it waits in the move list. A move is never learned without the player seeing it, so the best move
+coming last is a decision, not a trap.
+
+**Evolution.** At level 10, with every step behind it, a creature may **evolve into one of two forms**: a hard hitter (+3 ATK,
++2 SPD) or a wider, slower support (+3 RNG, +2 CD). Each form has its own look and learns a move of its own (Blazefang: Inferno;
+Kilnback: Ember Rain; Tidehound: Riptide; Wellspring: Deluge; Stormlynx: Thunderclap; Dynamo: Overcharge; Cragjaw: Landslide;
+Bastion: Tremor; Briarwolf: Bramble Lash; Elderbloom: Verdant Field).
+
+(A buffer earns nothing for the damage its buff helps deal: something to revisit.)
 
 ## Moves
 
@@ -64,6 +78,7 @@ A move has base values, scaled by the creature that uses it:
 | Burn | damage over time |
 | Soak | marks the enemy; Volt moves deal more to soaked enemies and use the soak up |
 | Haste | allies in reach use moves faster for a while (a buff) |
+| Mark | leaves puddles, embers or spores on the path tiles its area covers (below) |
 
 **Combos** come from effects: one move leaves a status, another does more to an enemy that has it (×2).
 
@@ -74,19 +89,37 @@ A move has base values, scaled by the creature that uses it:
 | Stunned | Static Jolt, Quake | Boulder |
 | Slowed | Undertow, Thorn, Spore Cloud | Overgrowth |
 
+**Reactions.** A combo also sets something off around the enemy it lands on. What the reaction's own blasts do sets off nothing
+more, so reactions never cascade.
+
+| Status cashed in | Reaction | Around the enemy |
+| --- | --- | --- |
+| Soaked | Chain | the hit jumps to every other soaked enemy within 30 px, at 60 % of its damage, using their soak up |
+| Burning | Spread | the fire spreads to every enemy within 20 px |
+| Stunned | Shatter | 50 % of the damage splashes onto every enemy within 22 px |
+| Slowed | Root | it and every slowed enemy within 24 px stop for 0.7 s (which a Boulder can then cash in) |
+
+A douse (Torrent, a Tide hit that does double to a burning enemy and puts the fire out) sets off no reaction.
+
+**Marks.** Some area moves leave a mark on the path tiles they cover: Undertow and Deluge leave **puddles** (soak), Flare Burst,
+Wildfire and Ember Rain leave **embers** (burn, at the maker's attack), Spore Cloud, Bramble and Verdant Field leave **spores**
+(slow). An enemy on a marked tile keeps getting its status while it is there. A tile holds one mark, and a new one replaces it, so a
+puddle puts out embers. Marks make where an area lands along the path matter, and let one creature lay the status another cashes in.
+
 ## Species
 
-| Species | Type | Learns (level) |
-| --- | --- | --- |
-| Emberling | Ember | Spark (1), Static Jolt (3), Rally (5), Flare Burst (7), Wildfire (10) |
-| Puddlepup | Tide | Splash Jet (1), Rally (3), Zap (5), Undertow (7) |
-| Voltkit | Volt | Zap (1), Static Jolt (3), Splash Jet (5), Arc Storm (7) |
-| Pebblet | Stone | Pebble (1), Boulder (3), Static Jolt (5), Quake (7) |
-| Sproutling | Bloom | Thorn (1), Rally (3), Spore Cloud (5), Overgrowth (7) |
+| Species | Type | Level 1 | Level 3 | Level 5 | Level 7 | Forms (level 10) |
+| --- | --- | --- | --- | --- | --- | --- |
+| Emberling | Ember | Spark | Cinder / Static Jolt | Rally / Heat Wave | Flare Burst / Wildfire | Blazefang / Kilnback |
+| Puddlepup | Tide | Splash Jet | Bubble / Rally | Zap / Torrent | Undertow / Spore Cloud | Tidehound / Wellspring |
+| Voltkit | Volt | Zap | Static Jolt / Bubble | Splash Jet / Rally | Arc Storm / Surge | Stormlynx / Dynamo |
+| Pebblet | Stone | Pebble | Boulder / Gravel | Static Jolt / Rally | Quake / Rubble | Cragjaw / Bastion |
+| Sproutling | Bloom | Thorn | Rally / Vine | Spore Cloud / Heat Wave | Overgrowth / Bramble | Briarwolf / Elderbloom |
 
-A milestone offers three of the five.
+A milestone offers three of the five. Some choices cross types (a Puddlepup may learn Spore Cloud): it loses the same-type bonus but
+lays a status its team cashes in.
 
-**Targeting.** A damaging move aims at the enemy in reach that is furthest along the path.
+**Targeting.** A damaging move aims at the enemy in reach that is furthest along the path and above ground.
 
 ## Types
 
@@ -100,7 +133,8 @@ Ember, Tide, Volt, Stone, Bloom. Each beats one and is resisted by one:
 | Volt | Tide | Stone |
 | Stone | Volt, Ember | Bloom |
 
-Enemies have types too, so the next wave's types are a reason to field one creature over another.
+Enemies have types too, and every type has an enemy, so the next wave's types (the bar shows them, below) are a reason to field one
+creature over another.
 
 ## Mastery
 
@@ -110,33 +144,81 @@ joins a run with its species' level then. Mastery adds **options**, not raw powe
 
 | Level | Benefit |
 | --- | --- |
-| 1 | It starts a run already knowing a second move. |
-| 2 | Its later moves are learned two levels earlier. |
+| 1 | Its first choice (the level 3 step) comes at level 1. |
+| 2 | Its later steps come two levels earlier. |
 | 3 | A fourth move slot. |
 
-It is saved on the player's machine (written at the end of each wave and run), and shown on the offer, on the creature's card
-and on the end screen.
+It is saved on the player's machine (written at the end of each wave and run) with the highest difficulty tier unlocked, and shown
+on the offer, on the creature's card and on the end screen.
+
+## Maps and terrain
+
+Three maps, chosen on the run setup screen: **Meadow** (a long winding path), **Riverbend** (tight bends, far apart) and
+**Gauntlet** (one bend that all of it passes). Each has **terrain tiles**, two for each type: ash (Ember), pool (Tide), pylon
+(Volt), rock (Stone) and grove (Bloom). A creature standing on its own type's terrain is **attuned**: +2 to every stat (shown on its
+card, and as a dot by it). Terrain sits beside the bends, so the best tiles for coverage and for attunement pull against each other.
+
+## Difficulty
+
+**The curve.** Every wave adds 28 % of an enemy's first-wave hit points, plus 4 % times the square of the waves gone by, so the
+last waves pull ahead of a team that has grown strong. Bosses' hit points are their own.
+
+**Elite waves.** Before a wave that a milestone follows, ELITE (or E) makes it elite: its enemies have 50 % more hit points, and the
+milestone after it offers four creatures instead of three.
+
+**Tiers.** A run is played at a difficulty tier; winning at the highest tier unlocked opens the next. Each adds one change to the
+ones below it:
+
+| Tier | Adds |
+| --- | --- |
+| 0 | the game as designed |
+| 1 | enemies 20 % tougher |
+| 2 | 8 lives, not 10 |
+| 3 | no milestone before wave 8 |
+| 4 | two shepherds join every wave from wave 3 |
+| 5 | enemies 10 % faster |
+
+**The daily run.** Daily run on the title starts today's run: its map, its offers and tier 2 come from the date, so everyone playing
+on a day plays the same run. It unlocks nothing.
 
 ## Screen
 
 320 × 180. The field is a 20 × 9 grid of 16 px tiles (320 × 144) with the path drawn on it; the bottom 36 px is a bar with lives,
-the wave, and the start-wave button. Under each creature on the field, one pip per equipped move fills as its cooldown runs. Clicking
-a creature opens its card: stats, level, and its moves, which can be equipped, unequipped and reordered.
+the wave, and the start-wave button. Under each creature on the field, one pip per equipped move fills as its cooldown runs; dots
+over it while it settles, a yellow bar while jammed. Clicking a creature opens its card: stats, level, and its moves, which can be
+equipped, unequipped and reordered.
+
+Between waves the bar shows **what the next wave brings**: each enemy kind's walk and how many. It also has the speed button (1X or
+2X, or F) and, when a milestone follows the next wave, ELITE.
 
 ## Enemies
+
+Enemies never hurt creatures. The first four are plain; the rest get in the way of a plan instead.
 
 | Enemy | Type | Does |
 | --- | --- | --- |
 | Crawler | Bloom | Plain and steady. |
 | Skitter | Tide | Fast, fragile. |
 | Mite | Ember | Tiny, in tight packs: an area move hits most of a pack. |
-| Shell | Stone | Slow, armoured: every hit loses 8 damage (burns ignore armour). Takes two lives if it gets through. |
+| Shell | Stone | Slow, armoured: every hit loses 6 damage (burns ignore armour). Takes two lives if it gets through. |
+| Sprinter | Volt | 12 % faster with every hit, up to 2.2 times its speed: chip damage backfires, one big hit is best. |
+| Cleanser | Tide | Washes every status off the enemies within 26 px every 1.5 s, and takes none itself: combos break unless it goes first. |
+| Brood | Ember | Splits into two mites where it falls, so an area move is needed further down the path too. |
+| Burrower | Stone | Underground for stretches of the path (48 px up, 72 down, faster under): nothing can target or hit it there, so stacking every creature at one bend fails. |
+| Jammer | Volt | Creatures within 28 px of it stop: their cooldowns stand still. Its radius is drawn. |
+| Shepherd | Bloom | Heals the enemies within 30 px by 3 % of their hit points a second: something has to reach it. |
+| **Mosshorn** (wave 5) | Stone, then Bloom | A boss: 450 hit points and 6 armour, until half are gone; then it sheds its shell, turns Bloom and runs. Takes three lives. |
+| **Prism** (wave 10) | every type | A boss: 3000 hit points and 4 armour, its type changing every fifth of the path, so one type of team cannot carry it. Takes six lives. |
 
-Every wave adds 38 % to every enemy's hit points. The waves start plain and bring in mites (wave 4) and shells (wave 5).
+The waves bring them in one or two at a time: sprinters (wave 2), cleansers (3), burrowers and mites (4), the Mosshorn (5), broods
+and jammers (6), shepherds (7), and the Prism (10).
 
-**Why moves need managing.** Each species learns its best area move last, at level 7, when its three slots are already full: it is
-only used if the player swaps it in. `tools/balance.ts` plays whole runs headless; its table (`test/balance.expected.json`) shows a
-run that re-equips its best moves winning, and the same run that never touches its moves losing. The tests keep it that way.
+**Why moves need managing, and where creatures stand.** `tools/balance.ts` plays whole runs headless. A *skilled* run (it picks the
+better move at every step, re-equips its best moves, picks a team that sets up combos, and stands each creature where it shares the
+most path with its team, attuned when it can) wins on every map, losing its lives in the last three waves. A *managed* run that picks
+moves as well but stands its creatures at fixed spots loses by wave 6, and a *lazy* run that takes the first option of every prompt
+loses too. `--seeds=12` plays each strategy over twelve offer rolls: the skilled run wins about half of them at tier 0. The tests
+keep the table (`test/balance.expected.json`) as it is.
 
 ## The first version
 
@@ -146,6 +228,9 @@ creatures use their own moves on cooldowns and the player manages which moves th
 
 ## How it is built
 
-The game state (`src/GameState.ts`) holds what the screens share: the screen, the roster, mastery. Each part of the battle is a
+The game state (`src/GameState.ts`) holds what the screens share: the screen, the roster, mastery, the map and tier, the speed and
+the open prompt. Each part of the battle is a
 component with its own state, as in the engine's Hearth: an enemy walks and takes hits, a creature cools its moves down and uses
-them, an effect lands. The tables (species, moves, types, waves) and the formulas are plain `.ts` in `src/rules/`, tested on their own.
+them, an effect lands, a mark on the path touches the enemies on it. Enemies talk to each other the same way creatures talk to
+them (`send`): a reaction, a cleanse and a heal are blasts sent to the enemies around one. The tables (species, forms, moves, marks, types, enemies, waves, maps, tiers) and the formulas are plain `.ts` in `src/rules/`, tested
+on their own.

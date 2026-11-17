@@ -19,6 +19,7 @@ npm run package  # dist/tower-defense/: the packaged game
 
 ```sh
 node tools/balance.ts       # whole runs played headless by fixed strategies: lives left after each wave (--write updates the test's table)
+node tools/balance.ts --seeds=12 [--only=skilled]   # each strategy over twelve offer rolls: wins and mean lives by wave, for tuning
 node tools/frame-time.ts    # script time of each step of a whole run, wave by wave: the mean, the 99th percentile and the slowest
 node tools/make-art.ts      # draws assets/*.png
 node tools/make-sounds.ts   # writes assets/*.wav
