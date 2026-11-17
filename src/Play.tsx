@@ -1,4 +1,4 @@
-import { Entity, Flex, Hud, ParticleLayer, Text, useInput, useMutable, useUpdate } from "@tsengine/runtime/jsx";
+import { Entity, Flex, Hud, Layer, ParticleLayer, Text, useInput, useMutable, useUpdate } from "@tsengine/runtime/jsx";
 
 import { Banner } from "./Banner.tsx";
 import { Bar } from "./Bar.tsx";
@@ -22,6 +22,7 @@ import { ENEMIES, ENEMY_KINDS, hpOf, type EnemyKind } from "./rules/enemies.ts";
 import { BUFF_XP_SHARE } from "./rules/progress.ts";
 import { centre, mapOf, TERRAIN_BONUS, TILE, terrainAt, toughnessAt } from "./rules/map.ts";
 import { tilesUnder } from "./rules/marks.ts";
+import { paletteParams } from "./rules/palette.ts";
 import { MOVES, REACTION_COLOR, REACTION_RADIUS } from "./rules/moves.ts";
 import { creatureById, onField } from "./rules/roster.ts";
 import { SPECIES } from "./rules/species.ts";
@@ -227,71 +228,76 @@ export function Play() {
 
   return (
     <Entity>
-      <Field />
-      {s.marks.map((m) => (
-        <Mark key={m.id} id={m.id} col={m.col} row={m.row} kind={m.kind} from={m.from} userType={m.userType} burn={m.burn} onDone={faded} />
-      ))}
-      <Tiles />
-      {onField(team).map((c) => (
-        <Creature
-          key={c.id}
-          id={c.id}
-          species={c.species}
-          level={c.level}
-          form={c.form}
-          terrain={terrainAt(map, c.col, c.row) === SPECIES[c.species].type ? TERRAIN_BONUS : 0}
-          equipped={c.equipped}
-          x={centre(c.col, c.row).x}
-          y={centre(c.col, c.row).y}
-          selected={c.id === selectedId}
-          onUse={used}
-        />
-      ))}
-      {s.enemies.map((e) => (
-        <Enemy
-          key={e.id}
-          id={e.id}
-          kind={e.kind}
-          maxHp={e.maxHp}
-          startDist={e.startDist}
-          pace={speedScale(tier)}
-          onKilled={killed}
-          onLeaked={leaked}
-          onDamaged={damaged}
-          onHit={hit}
-          onReaction={reacted}
-        />
-      ))}
-      {s.fallen.map((f) => (
-        <Fallen key={f.id} id={f.id} row={f.row} x={f.x} y={f.y} scale={f.scale} color={f.color} onDone={crumbled} />
-      ))}
-      {s.effects.map((e) => (
-        <Effect key={e.id} id={e.id} color={e.color} fromX={e.fromX} fromY={e.fromY} x={e.x} y={e.y} radius={e.radius} onDone={shown} />
-      ))}
-      {mapOf(map).night && (
-        <Night
-          map={map}
-          creatures={onField(team).map((c) => ({ id: c.id, x: centre(c.col, c.row).x, y: centre(c.col, c.row).y, type: SPECIES[c.species].type }))}
-          effects={s.effects}
-        />
-      )}
-      <Spots />
-      <ParticleLayer particles={fx} />
-      {s.popups.map((p) => (
-        <Popup key={p.id} {...p} onDone={popped} />
-      ))}
-      <Hud>
-        <Bar lives={s.lives} wave={s.wave} active={s.active} canElite={canElite} onStartWave={startWave} />
-        {waiting && prompting < 0 && <Banner />}
-        {chosen !== undefined && prompting < 0 && !moving && <Card creature={chosen} />}
-        {chosen !== undefined && prompting < 0 && moving && (
-          <Flex float anchor="top-left" to="top-left" x={0} y={0} width={320} paddingY={1} justifyContent="center" background="#141824c0">
-            <Text color="#f0d84a">{chosen.col >= 0 ? "MOVE: PRESS A TILE, OR A CREATURE TO SWAP. ESC CANCELS" : "PLACE: PRESS A TILE, OR A CREATURE TO SWAP. ESC CANCELS"}</Text>
-          </Flex>
+      {/* The map's palette (`palette.glsl`) over all of the battle, and again over the HUD: every pixel becomes one of its five colours. */}
+      <Layer shader="palette.glsl" params={paletteParams(map)}>
+        <Field />
+        {s.marks.map((m) => (
+          <Mark key={m.id} id={m.id} col={m.col} row={m.row} kind={m.kind} from={m.from} userType={m.userType} burn={m.burn} onDone={faded} />
+        ))}
+        <Tiles />
+        {onField(team).map((c) => (
+          <Creature
+            key={c.id}
+            id={c.id}
+            species={c.species}
+            level={c.level}
+            form={c.form}
+            terrain={terrainAt(map, c.col, c.row) === SPECIES[c.species].type ? TERRAIN_BONUS : 0}
+            equipped={c.equipped}
+            x={centre(c.col, c.row).x}
+            y={centre(c.col, c.row).y}
+            selected={c.id === selectedId}
+            onUse={used}
+          />
+        ))}
+        {s.enemies.map((e) => (
+          <Enemy
+            key={e.id}
+            id={e.id}
+            kind={e.kind}
+            maxHp={e.maxHp}
+            startDist={e.startDist}
+            pace={speedScale(tier)}
+            onKilled={killed}
+            onLeaked={leaked}
+            onDamaged={damaged}
+            onHit={hit}
+            onReaction={reacted}
+          />
+        ))}
+        {s.fallen.map((f) => (
+          <Fallen key={f.id} id={f.id} row={f.row} x={f.x} y={f.y} scale={f.scale} color={f.color} onDone={crumbled} />
+        ))}
+        {s.effects.map((e) => (
+          <Effect key={e.id} id={e.id} color={e.color} fromX={e.fromX} fromY={e.fromY} x={e.x} y={e.y} radius={e.radius} onDone={shown} />
+        ))}
+        {mapOf(map).night && (
+          <Night
+            map={map}
+            creatures={onField(team).map((c) => ({ id: c.id, x: centre(c.col, c.row).x, y: centre(c.col, c.row).y, type: SPECIES[c.species].type }))}
+            effects={s.effects}
+          />
         )}
-        {prompting >= 0 && <Prompt />}
-        {offering && <Offer />}
-        {paused && <Pause />}
+        <Spots />
+        <ParticleLayer particles={fx} />
+        {s.popups.map((p) => (
+          <Popup key={p.id} {...p} onDone={popped} />
+        ))}
+      </Layer>
+      <Hud>
+        <Layer shader="palette.glsl" params={paletteParams(map)}>
+          <Bar lives={s.lives} wave={s.wave} active={s.active} canElite={canElite} onStartWave={startWave} />
+          {waiting && prompting < 0 && <Banner />}
+          {chosen !== undefined && prompting < 0 && !moving && <Card creature={chosen} />}
+          {chosen !== undefined && prompting < 0 && moving && (
+            <Flex float anchor="top-left" to="top-left" x={0} y={0} width={320} paddingY={1} justifyContent="center" background="#141824c0">
+              <Text color="#f0d84a">{chosen.col >= 0 ? "MOVE: PRESS A TILE, OR A CREATURE TO SWAP. ESC CANCELS" : "PLACE: PRESS A TILE, OR A CREATURE TO SWAP. ESC CANCELS"}</Text>
+            </Flex>
+          )}
+          {prompting >= 0 && <Prompt />}
+          {offering && <Offer />}
+          {paused && <Pause />}
+        </Layer>
       </Hud>
     </Entity>
   );
