@@ -161,6 +161,13 @@ more hit points each wave than elsewhere, since the long path gives the creature
 (Volt), rock (Stone) and grove (Bloom). A creature standing on its own type's terrain is **attuned**: +2 to every stat (shown on its
 card, and as a dot by it). Terrain sits beside the bends, so the best tiles for coverage and for attunement pull against each other.
 
+**Each map's palette** (`src/rules/palette.ts`, `assets/palette.glsl`), in the manner of City of None: the whole battle, and the
+HUD, are laid over through one shader that makes every pixel one of five colours. A dark background (the map's mood: navy, slate,
+brown, violet), three mid colours (cool, green, warm) and white. The darkest pixels become the background, the brightest white, and
+the rest go by hue. The colours are chosen to rules a test checks: each mid colour at least 3:1 against the background, the three
+hues at least 75° apart, alike in colourfulness, and stepping up in lightness from cool to warm, so they stay apart without their
+hues. The software renderer runs no shaders, so it shows the art's own colours.
+
 **Effects drawn with shaders** (each a layer holding just what it changes; the software renderer runs none, and shows the plain
 picture: a white flash, a fade, still tiles):
 
