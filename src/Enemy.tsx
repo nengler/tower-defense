@@ -24,8 +24,9 @@ interface EnemyProps {
  * One enemy. It walks the path at its kind's speed, and takes what lands on it: a `blast` collider aimed at it, or an area its
  * middle is in. What a blast leaves stays on it as state that counts down: stunned (it stops), slowed, burning (damage over time)
  * and soaked. A combo move does more against an enemy with the status it plays off (soaked for Volt moves, burning, stunned,
- * slowed), and a soak is used up by it. An armoured kind takes its armour off every hit (not a burn). It draws a circle in its type's colour, a health bar once hurt,
- * and a mark for each status. It draws its kind's walk, white for a moment when hit. Creatures find it by its collider, whose data says where it is.
+ * slowed), and a soak is used up by it. An armoured kind takes its armour off every hit (not a burn). It draws its kind's walk
+ * (white for a moment when hit), a health bar once hurt, and a mark for each status. Creatures find it by its collider, whose data
+ * says where it is.
  */
 export function Enemy({ id, kind, maxHp, onKilled, onLeaked, onDamaged, onHit }: EnemyProps) {
   const info = ENEMIES[kind];
