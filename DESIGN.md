@@ -164,7 +164,8 @@ card, and as a dot by it). Terrain sits beside the bends, so the best tiles for 
 **Each map's palette** (`src/rules/palette.ts`, `assets/palette.glsl`), in the manner of City of None: the whole battle, and the
 HUD, are laid over through one shader that makes every pixel one of five colours. A dark background (the map's mood: navy, slate,
 brown, violet), three mid colours (cool, green, warm) and white. The darkest pixels become the background, the brightest white, and
-the rest go by hue. The colours are chosen to rules a test checks: each mid colour at least 3:1 against the background, the three
+the rest go by hue, and then by lightness to that colour's shade, itself or its highlight, so the art's own shading (a
+pond's ripples, a tree's lit side, a creature's shadow) survives. The colours are chosen to rules a test checks: each mid colour at least 3:1 against the background, the three
 hues at least 75° apart, alike in colourfulness, and stepping up in lightness from cool to warm, so they stay apart without their
 hues. The software renderer runs no shaders, so it shows the art's own colours.
 
@@ -218,7 +219,7 @@ on a day plays the same run. It unlocks nothing.
 
 320 × 180. The field is a 20 × 9 grid of 16 px tiles (320 × 144) with the path drawn on it; the bottom 36 px is a bar with lives,
 the wave, and the start-wave button. Under each creature on the field, one pip per equipped move fills as its cooldown runs; dots
-over it while it settles, a yellow bar while jammed. Clicking a creature opens its card: stats, level, and its moves, which can be
+over it while it settles, a yellow bar while jammed. Clicking a creature opens its card: level, its stats as bars (each as long as the highest any creature reaches, the terrain bonus a bright end), and its moves, which can be
 equipped, unequipped and reordered.
 
 **Moving.** The card's MOVE (PLACE for a creature on the bench, or the M key) puts the card away and marks every tile the creature

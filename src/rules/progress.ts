@@ -1,4 +1,5 @@
-import { SPECIES, type SpeciesId } from "./species.ts";
+import { TERRAIN_BONUS } from "./map.ts";
+import { FORM_IDS, FORMS, SPECIES, SPECIES_IDS, statsAt, type SpeciesId } from "./species.ts";
 
 /** The highest level a creature reaches. */
 export const MAX_LEVEL = 20;
@@ -67,3 +68,24 @@ export function nextMasteryAt(points: number): number | null {
 
 /** What a mastery level gives, in a few words. */
 export const MASTERY_TEXT: readonly string[] = ["", "FIRST CHOICE AT LV1", "LEARNS MOVES SOONER", "A 4TH MOVE SLOT"];
+
+/**
+ * The highest a stat can be: the best of any species or form at `MAX_LEVEL`, standing on its own terrain. The card draws each stat as
+ * a bar of this length, so a bar's fill reads the same on every creature.
+ */
+export const STAT_CEILING = Math.max(
+  ...SPECIES_IDS.map((id) => {
+    const s = statsAt(id, MAX_LEVEL);
+    return Math.max(s.atk, s.spd, s.rng, s.cd);
+  }),
+  ...FORM_IDS.map((id) => {
+    const f = FORMS[id];
+    const s = statsAt(f.species, MAX_LEVEL);
+    return Math.max(s.atk + f.bonus.atk, s.spd + f.bonus.spd, s.rng + f.bonus.rng, s.cd + f.bonus.cd);
+  })
+) + TERRAIN_BONUS;
+
+/** How much of a stat bar `value` fills, as a percentage of `STAT_CEILING`. */
+export function statBarPercent(value: number): number {
+  return Math.min(100, Math.max(0, (100 * value) / STAT_CEILING));
+}
