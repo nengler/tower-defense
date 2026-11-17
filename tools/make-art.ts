@@ -4,23 +4,24 @@
  *
  * - `creatures.png`: 12 × 12 frames, two to a row (an idle bob), one row a species in `SPECIES_IDS` order, then one a form in
  *   `FORM_IDS` order (each form is its species drawn again, with something added).
- * - `enemies.png`: 12 × 12 frames, two to a row (a walk), one row a kind in `ENEMY_KINDS` order.
- * - `tiles.png`: 16 × 16 tiles in a row: grass, grass with a tuft, path, then a terrain tile per type in `TYPES` order (ash, pool,
- *   pylon, rock, grove); then Glowmire's grass, grass with reeds, cobbled path and water, and a lantern and a glow-mushroom (on a clear
- *   background, drawn over the grass).
+ * - `enemies.png` is not drawn here: `tools/make-enemies.ts` lays it out from the Tiny Creatures sprites.
+ * - `tiles.png`: 16 × 16 tiles in a row: grass, grass with flowers, road, then a terrain tile per type in `TYPES` order (ash, pool,
+ *   pylon, rock, grove), all from or in the style of Kenney's Tiny Town (CC0, `tools/kenney/`); then Glowmire's grass, grass with
+ *   reeds, cobbled path and water, and a lantern and a glow-mushroom (on a clear background, drawn over the grass); then sixteen road
+ *   tiles, each joined to the neighbours that are road too.
  *
  *   node tools/make-art.ts
  */
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { encodePng } from "@tsengine/player-node";
+import { decodePng, encodePng } from "@tsengine/player-node";
 
-import { ENEMY_KINDS } from "../src/rules/enemies.ts";
 import { FORM_IDS, FORMS, SPECIES_IDS } from "../src/rules/species.ts";
 
-const assets = join(dirname(fileURLToPath(import.meta.url)), "../assets");
+const here = dirname(fileURLToPath(import.meta.url));
+const assets = join(here, "../assets");
 
 type Rgb = readonly [number, number, number];
 
@@ -210,134 +211,6 @@ const FORM_EXTRAS: Record<(typeof FORM_IDS)[number], Draw> = {
   },
 };
 
-/** Each enemy kind, likewise; `frame` 1 is the other step of the walk. */
-const ENEMIES: Record<(typeof ENEMY_KINDS)[number], Draw> = {
-  crawler: (c, ox, oy, f) => {
-    const t = TONE.bloom;
-    // A beetle with six legs taking turns.
-    for (const x of [3, 6, 9]) c.set(ox + x, oy + 10 - ((x / 3 + f) % 2), t.dark);
-    c.disc(ox + 6, oy + 6.5, 4, t.dark);
-    c.disc(ox + 6, oy + 6, 3.4, t.main);
-    c.rect(ox + 6, oy + 3, 1, 6, t.dark);
-    c.set(ox + 9, oy + 5, INK);
-  },
-  skitter: (c, ox, oy, f) => {
-    const t = TONE.tide;
-    // A thin runner on long legs.
-    c.disc(ox + 6, oy + 5, 2.6, t.dark);
-    c.disc(ox + 6, oy + 4.8, 2.1, t.main);
-    c.rect(ox + 4 + f, oy + 7, 1, 4, t.dark);
-    c.rect(ox + 8 - f, oy + 7, 1, 4, t.dark);
-    c.set(ox + 7, oy + 4, INK);
-  },
-  mite: (c, ox, oy, f) => {
-    const t = TONE.ember;
-    // A speck with legs.
-    c.disc(ox + 6, oy + 6, 2, t.main);
-    c.set(ox + 3 + f, oy + 8, t.dark);
-    c.set(ox + 9 - f, oy + 8, t.dark);
-    c.set(ox + 7, oy + 5, INK);
-  },
-  shell: (c, ox, oy, f) => {
-    const t = TONE.stone;
-    // An armoured dome with plates, on stubby feet.
-    c.rect(ox + 3 + f, oy + 9, 2, 2, t.dark);
-    c.rect(ox + 7 - f, oy + 9, 2, 2, t.dark);
-    c.disc(ox + 6, oy + 6, 5, t.dark);
-    c.disc(ox + 6, oy + 5.6, 4.4, t.main);
-    c.rect(ox + 2, oy + 6, 9, 1, t.dark);
-    c.rect(ox + 6, oy + 2, 1, 4, t.dark);
-    c.disc(ox + 4.5, oy + 4, 1, t.light);
-    c.set(ox + 10, oy + 7, INK);
-  },
-  sprinter: (c, ox, oy, f) => {
-    const t = TONE.volt;
-    // A lean dart, streaks behind it.
-    c.disc(ox + 7, oy + 6, 2.5, t.dark);
-    c.disc(ox + 7, oy + 5.8, 2, t.main);
-    c.rect(ox + 1, oy + 5, 3, 1, t.light);
-    c.rect(ox + 2 + f, oy + 7, 2, 1, t.light);
-    c.set(ox + 6 + f, oy + 9, t.dark);
-    c.set(ox + 8 - f, oy + 9, t.dark);
-    c.set(ox + 8, oy + 5, INK);
-  },
-  cleanser: (c, ox, oy, f) => {
-    const t = TONE.tide;
-    // A jelly with a ring of foam, its fringe swaying.
-    c.disc(ox + 6, oy + 5, 3.6, t.dark);
-    c.disc(ox + 6, oy + 4.6, 3, t.light);
-    for (const x of [3, 5, 7, 9]) c.rect(ox + x, oy + 8, 1, 2 + ((x + f) % 2), t.main);
-    c.set(ox + 5, oy + 4, INK);
-    c.set(ox + 7, oy + 4, INK);
-  },
-  brood: (c, ox, oy, f) => {
-    const t = TONE.ember;
-    // A sac full of mites.
-    c.disc(ox + 6, oy + 6, 4.5, t.dark);
-    c.disc(ox + 6, oy + 5.6, 3.9, t.main);
-    for (const [x, y] of [[4, 4], [7, 5], [5, 7], [8, 7]] as const) c.set(ox + x + f * ((x + y) % 2), oy + y, t.light);
-    c.set(ox + 3 + f, oy + 11, t.dark);
-    c.set(ox + 9 - f, oy + 11, t.dark);
-  },
-  burrower: (c, ox, oy, f) => {
-    const t = TONE.stone;
-    // A mole with big claws.
-    c.disc(ox + 6, oy + 6.5, 3.8, t.dark);
-    c.disc(ox + 6, oy + 6, 3.2, t.main);
-    c.rect(ox + 9, oy + 8 - f, 2, 2, t.light);
-    c.rect(ox + 1, oy + 8 + f - 1, 2, 2, t.light);
-    c.set(ox + 8, oy + 5, INK);
-    c.set(ox + 10, oy + 6, [0xf0, 0xa0, 0xa0]);
-  },
-  jammer: (c, ox, oy, f) => {
-    const t = TONE.volt;
-    // A box on legs with an antenna that blinks.
-    c.rect(ox + 3, oy + 4, 6, 5, t.dark);
-    c.rect(ox + 4, oy + 5, 4, 3, t.main);
-    c.rect(ox + 6, oy + 1, 1, 3, INK);
-    c.set(ox + 6, oy + 0, f ? WHITE : t.light);
-    c.set(ox + 4 + f, oy + 10, t.dark);
-    c.set(ox + 7 - f, oy + 10, t.dark);
-    c.set(ox + 7, oy + 6, INK);
-  },
-  shepherd: (c, ox, oy, f) => {
-    const t = TONE.bloom;
-    // A woolly walker with a crook.
-    c.disc(ox + 6, oy + 6, 4, t.light);
-    c.disc(ox + 5, oy + 5, 2, WHITE);
-    c.disc(ox + 9, oy + 5, 1.6, t.dark);
-    c.set(ox + 10, oy + 5, INK);
-    c.rect(ox + 1, oy + 2, 1, 7, t.dark);
-    c.set(ox + 2, oy + 2, t.dark);
-    c.set(ox + 4 + f, oy + 10, t.dark);
-    c.set(ox + 8 - f, oy + 10, t.dark);
-  },
-  mosshorn: (c, ox, oy, f) => {
-    const t = TONE.stone;
-    // A horned beast with moss on its back.
-    c.disc(ox + 6, oy + 6.5, 5, t.dark);
-    c.disc(ox + 6, oy + 6, 4.4, t.main);
-    c.rect(ox + 3, oy + 2, 5, 2, TONE.bloom.main);
-    c.set(ox + 4, oy + 1, TONE.bloom.light);
-    c.rect(ox + 10, oy + 3, 1, 3, WHITE);
-    c.set(ox + 11, oy + 2, WHITE);
-    c.set(ox + 9, oy + 6, INK);
-    c.rect(ox + 3 + f, oy + 10, 2, 2, t.dark);
-    c.rect(ox + 7 - f, oy + 10, 2, 2, t.dark);
-  },
-  prism: (c, ox, oy, f) => {
-    // A crystal with a facet of every type.
-    const order = [TONE.ember, TONE.tide, TONE.volt, TONE.stone, TONE.bloom];
-    for (let y = 0; y < 11; y++) {
-      const w = 5 - Math.abs(5 - y);
-      for (let x = -w; x <= w; x++) c.set(ox + 6 + x, oy + y + 0.5, order[(Math.abs(x) + y + f) % 5]!.main);
-    }
-    c.set(ox + 6, oy + 2, WHITE);
-    c.set(ox + 5, oy + 5, INK);
-    c.set(ox + 7, oy + 5, INK);
-  },
-};
-
 function sheet(name: string, rows: readonly Draw[]): void {
   const c = new Canvas(24, rows.length * 12);
   rows.forEach((draw, row) => {
@@ -346,64 +219,125 @@ function sheet(name: string, rows: readonly Draw[]): void {
   c.write(name);
 }
 
+/** Tile `n` of Kenney's Tiny Town (CC0), as copied into `tools/kenney/`. */
+function tinyTown(n: number): { readonly width: number; readonly height: number; readonly rgba: Uint8Array } {
+  return decodePng(readFileSync(join(here, "kenney", `tiny-town-${String(n).padStart(4, "0")}.png`)));
+}
+
+/** Draw the `w` × `h` part of `img` at (sx, sy) onto `c` at (ox, oy), skipping clear pixels. */
+/**
+ * The day maps' palette: the ground is kept to a few quiet colours so the creatures, enemies and effects stand out. Two greens for
+ * grass, three tans for the road, one ink for every outline, one for flowers, and a dark and a light of each type's colour (muted from
+ * `TONE`) for its terrain.
+ */
+const DAY = {
+  ink: [0x24, 0x1e, 0x2a],
+  grass: [0x3a, 0x52, 0x42],
+  grassDark: [0x31, 0x46, 0x3a],
+  road: [0x7a, 0x6a, 0x52],
+  roadDark: [0x64, 0x56, 0x3f],
+  roadLight: [0x8c, 0x7a, 0x5e],
+  flower: [0x86, 0x82, 0x6a],
+  ember: [0xb0, 0x62, 0x3a],
+  emberLight: [0xd0, 0x8a, 0x4a],
+  tide: [0x34, 0x64, 0x8f],
+  tideLight: [0x6a, 0x98, 0xbc],
+  volt: [0xb0, 0x92, 0x3c],
+  voltLight: [0xd4, 0xbc, 0x66],
+  stoneLight: [0x9a, 0x94, 0x88],
+  bloom: [0x3e, 0x6e, 0x40],
+  bloomLight: [0x5a, 0x8c, 0x52],
+} as const satisfies Record<string, Rgb>;
+
+/** Each colour Kenney's tiles use, as `DAY`'s: grass, road, outline and trunk. A tile's own `recolour` comes first. */
+const QUIET: Readonly<Record<string, Rgb>> = {
+  "84c669": DAY.grass,
+  "65a556": DAY.grassDark,
+  eaa56c: DAY.road,
+  cf8254: DAY.roadDark,
+  fec99c: DAY.roadLight,
+  "3f2631": DAY.ink,
+  bd6c4a: DAY.roadDark,
+  ffffff: DAY.flower,
+};
+
+const hex = (r: number, g: number, b: number) => [r, g, b].map((v) => v.toString(16).padStart(2, "0")).join("");
+
+/**
+ * Draw the `w` × `h` part of `img` at (sx, sy) onto `c` at (ox, oy), skipping clear pixels, each colour put to the day palette:
+ * `recolour` (by Kenney's colour, as `rrggbb`) first, then `QUIET`. A colour in neither is an error, so a new tile cannot bring its
+ * own colours in unnoticed.
+ */
+function blit(
+  c: Canvas,
+  img: { readonly width: number; readonly rgba: Uint8Array },
+  ox: number,
+  oy: number,
+  { sx = 0, sy = 0, w = 16, h = 16, recolour = {} }: { sx?: number; sy?: number; w?: number; h?: number; recolour?: Readonly<Record<string, Rgb>> } = {}
+): void {
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      const i = ((sy + y) * img.width + sx + x) * 4;
+      if ((img.rgba[i + 3] ?? 0) === 0) continue;
+      const key = hex(img.rgba[i]!, img.rgba[i + 1]!, img.rgba[i + 2]!);
+      const to = recolour[key] ?? QUIET[key];
+      if (to === undefined) throw new Error(`Kenney colour #${key} has no place in the day palette`);
+      c.set(ox + x, oy + y, to);
+    }
+}
+
+/** Where the road tile for the neighbour mask `mask` is (`pathFrame` in `src/rules/draw.ts`): N 1, E 2, S 4, W 8. */
+const PATH_FIRST = 14;
+
+/**
+ * Tiny Town's dirt road is drawn for areas two or more tiles wide: an edge piece for each side, an outer corner for each corner, and
+ * an inner corner for each bend. The maps' paths are one tile wide, so each path tile is put together from four 8 × 8 quarters, each
+ * quarter taken from the piece that fits the two neighbours on its side: grass on both, an outer corner; path on one, that edge;
+ * path on both, the inner corner (the tile between them, diagonally, is never path).
+ */
+function pathTile(c: Canvas, ox: number, mask: number): void {
+  const n = (mask & 1) !== 0;
+  const e = (mask & 2) !== 0;
+  const s = (mask & 4) !== 0;
+  const w = (mask & 8) !== 0;
+  // For each quarter: [its x and y in the tile, the outer corner, the edge across (path above or below only), the edge along
+  // (path beside only), the inner corner], and which two neighbours decide it.
+  const quarters = [
+    { qx: 0, qy: 0, v: n, h: w, outer: 12, vertical: 24, horizontal: 13, inner: 39 },
+    { qx: 8, qy: 0, v: n, h: e, outer: 14, vertical: 26, horizontal: 13, inner: 40 },
+    { qx: 0, qy: 8, v: s, h: w, outer: 36, vertical: 24, horizontal: 37, inner: 42 },
+    { qx: 8, qy: 8, v: s, h: e, outer: 38, vertical: 26, horizontal: 37, inner: 41 },
+  ];
+  for (const q of quarters) {
+    const piece = q.v && q.h ? q.inner : q.v ? q.vertical : q.h ? q.horizontal : q.outer;
+    blit(c, tinyTown(piece), ox + q.qx, q.qy, { sx: q.qx, sy: q.qy, w: 8, h: 8 });
+  }
+}
+
 function tiles(): void {
-  const c = new Canvas(16 * 14, 16);
-  const GRASS: Rgb = [0x22, 0x32, 0x28];
-  const GRASS_DARK: Rgb = [0x1d, 0x2a, 0x22];
-  const TUFT: Rgb = [0x3a, 0x5a, 0x40];
-  const DIRT: Rgb = [0x5b, 0x4d, 0x3a];
-  const DIRT_DARK: Rgb = [0x4e, 0x42, 0x32];
-  const DIRT_LIGHT: Rgb = [0x6a, 0x5a, 0x44];
+  const c = new Canvas(16 * (PATH_FIRST + 16), 16);
   const noise = (x: number, y: number): number => (((x * 73856093) ^ (y * 19349663)) >>> 0) % 9;
+  // The day maps' ground is Kenney's Tiny Town (CC0, tools/kenney/): grass, grass with flowers, and the road's middle.
+  const grass = tinyTown(0);
+  blit(c, grass, 0, 0);
+  blit(c, tinyTown(2), 16, 0, { recolour: { fdbe53: DAY.flower, e38628: DAY.roadLight } });
+  blit(c, tinyTown(25), 32, 0);
+  // The terrain, on grass: an autumn tree (ash, Ember), a pond (pool, Tide), a gold crystal (pylon, Volt), cobbles (rock, Stone)
+  // and a green tree (grove, Bloom).
+  for (const n of [3, 4, 5, 7]) blit(c, grass, n * 16, 0);
+  blit(c, tinyTown(27), 3 * 16, 0, { recolour: { e38628: DAY.ember, fdbe53: DAY.emberLight } });
+  blit(c, tinyTown(93), 5 * 16, 0, { recolour: { e38628: DAY.volt, fdbe53: DAY.voltLight } });
+  blit(c, tinyTown(43), 6 * 16, 0, { recolour: { c0cbdc: DAY.stoneLight } });
+  blit(c, tinyTown(16), 7 * 16, 0, { recolour: { "479f4a": DAY.bloom, "84c669": DAY.bloomLight } });
+  // The pond is drawn, in Tiny Town's way (an outline), since the pack has no water.
   for (let y = 0; y < 16; y++)
     for (let x = 0; x < 16; x++) {
-      const n = noise(x, y);
-      // A dark edge at the bottom and right, so the grid reads as tiles.
-      const edge = x === 15 || y === 15;
-      c.set(x, y, edge || n === 0 ? GRASS_DARK : GRASS);
-      c.set(16 + x, y, edge || n === 0 ? GRASS_DARK : GRASS);
-      c.set(32 + x, y, n === 0 ? DIRT_DARK : n === 1 ? DIRT_LIGHT : DIRT);
+      const d = Math.hypot((x + 0.5 - 8) / 6.5, (y + 0.5 - 8.5) / 5.5);
+      if (d > 1) continue;
+      const rim = d > 0.82;
+      c.set(4 * 16 + x, y, rim ? DAY.ink : (x + y * 2) % 7 === 0 && d < 0.7 ? DAY.tideLight : DAY.tide);
     }
-  for (const [x, y] of [
-    [5, 9],
-    [6, 8],
-    [7, 9],
-    [10, 5],
-    [11, 4],
-  ] as const)
-    c.set(16 + x, y, TUFT);
-  // The terrain: grass underneath (the same dark edge), with each type's ground on it.
-  const terrain = (n: number, draw: (x: number, y: number) => Rgb | null) => {
-    for (let y = 0; y < 16; y++)
-      for (let x = 0; x < 16; x++) {
-        const edge = x === 15 || y === 15;
-        c.set(n * 16 + x, y, edge ? GRASS_DARK : (draw(x, y) ?? GRASS));
-      }
-  };
-  // Ash: dark ground with glowing cracks.
-  terrain(3, (x, y) => ((x * 3 + y * 5) % 11 === 0 ? TONE.ember.main : noise(x, y) < 2 ? [0x3a, 0x2a, 0x26] : [0x2e, 0x24, 0x22]));
-  // Pool: water with a light ripple, a grass rim.
-  terrain(4, (x, y) => {
-    if (x < 2 || y < 2 || x > 12 || y > 12) return null;
-    return (x + y * 2) % 7 === 0 ? TONE.tide.light : TONE.tide.dark;
-  });
-  // Pylon: a crystal standing in the grass.
-  terrain(5, (x, y) => {
-    const w = 3 - Math.abs(7 - y) / 2;
-    if (y >= 3 && y <= 12 && Math.abs(x - 7) <= w) return x <= 7 ? TONE.volt.light : TONE.volt.main;
-    return null;
-  });
-  // Rock: a few stones.
-  terrain(6, (x, y) => {
-    const stone = (cx: number, cy: number, r: number) => Math.hypot(x - cx, y - cy) <= r;
-    if (stone(5, 6, 3.2) || stone(10, 10, 2.6) || stone(11, 4, 1.8)) return noise(x, y) < 3 ? TONE.stone.light : TONE.stone.main;
-    return null;
-  });
-  // Grove: lush grass with flowers.
-  terrain(7, (x, y) => {
-    if ((x === 4 && y === 4) || (x === 11 && y === 9) || (x === 6 && y === 11)) return [0xf0, 0xa0, 0xd0];
-    return noise(x, y) < 4 ? TONE.bloom.dark : [0x2a, 0x5a, 0x34];
-  });
+  for (let mask = 0; mask < 16; mask++) pathTile(c, (PATH_FIRST + mask) * 16, mask);
   // Glowmire, a bog at night: cooler, bluer grass (the light map darkens it further), cobbles, and water with ripple lines.
   const BOG: Rgb = [0x2a, 0x40, 0x44];
   const BOG_DARK: Rgb = [0x22, 0x34, 0x3a];
@@ -486,9 +420,5 @@ sheet("creatures.png", [
     FORM_EXTRAS[id](c, ox, oy, f);
   }),
 ]);
-sheet(
-  "enemies.png",
-  ENEMY_KINDS.map((k) => ENEMIES[k])
-);
 tiles();
-console.log(`wrote creatures.png, enemies.png and tiles.png to ${assets}`);
+console.log(`wrote creatures.png and tiles.png to ${assets}`);

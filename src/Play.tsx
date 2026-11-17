@@ -8,6 +8,7 @@ import { Creature } from "./Creature.tsx";
 import { Effect } from "./Effect.tsx";
 import { fx, sfx } from "./effects.ts";
 import { Enemy } from "./Enemy.tsx";
+import { Fallen } from "./Fallen.tsx";
 import { Field } from "./Field.tsx";
 import { Mark } from "./Mark.tsx";
 import { Night } from "./Night.tsx";
@@ -17,7 +18,7 @@ import { Pause } from "./Pause.tsx";
 import { Popup } from "./Popup.tsx";
 import { Prompt } from "./Prompt.tsx";
 import { save } from "./save.ts";
-import { ENEMIES, hpOf, type EnemyKind } from "./rules/enemies.ts";
+import { ENEMIES, ENEMY_KINDS, hpOf, type EnemyKind } from "./rules/enemies.ts";
 import { BUFF_XP_SHARE } from "./rules/progress.ts";
 import { centre, mapOf, TERRAIN_BONUS, TILE, terrainAt, toughnessAt } from "./rules/map.ts";
 import { tilesUnder } from "./rules/marks.ts";
@@ -72,6 +73,8 @@ export function Play() {
     effects: [] as Placed[],
     /** Marks on path tiles, one a tile. */
     marks: [] as Laid[],
+    /** Enemies crumbling away where they died (the newest 40), for the eye only. */
+    fallen: [] as readonly { readonly id: number; readonly row: number; readonly x: number; readonly y: number; readonly scale: number; readonly color: string }[],
     /** Damage numbers rising from hits (the newest 30). */
     popups: [] as readonly { readonly id: number; readonly x: number; readonly y: number; readonly amount: number; readonly combo: boolean }[],
     nextId: 1,
@@ -146,6 +149,11 @@ export function Play() {
       }
     }
     fx.burst("die", x, y, { color: TYPE_COLOR[ENEMIES[kind].type] });
+    s.fallen = [
+      ...s.fallen.slice(-39),
+      { id: s.nextId, row: ENEMY_KINDS.indexOf(kind), x, y, scale: ENEMIES[kind].boss === true ? 1.6 : 1, color: TYPE_COLOR[ENEMIES[kind].type] },
+    ];
+    s.nextId += 1;
     sfx.play("die");
   };
   const leaked = (id: number, kind: EnemyKind) => {
@@ -180,6 +188,9 @@ export function Play() {
     });
     s.nextId += 1;
     fx.burst("combo", r.x, r.y, { color: REACTION_COLOR[r.reaction] });
+  };
+  const crumbled = (id: number) => {
+    s.fallen = s.fallen.filter((f) => f.id !== id);
   };
   const popped = (id: number) => {
     s.popups = s.popups.filter((p) => p.id !== id);
@@ -250,6 +261,9 @@ export function Play() {
           onHit={hit}
           onReaction={reacted}
         />
+      ))}
+      {s.fallen.map((f) => (
+        <Fallen key={f.id} id={f.id} row={f.row} x={f.x} y={f.y} scale={f.scale} color={f.color} onDone={crumbled} />
       ))}
       {s.effects.map((e) => (
         <Effect key={e.id} id={e.id} color={e.color} fromX={e.fromX} fromY={e.fromY} x={e.x} y={e.y} radius={e.radius} onDone={shown} />
