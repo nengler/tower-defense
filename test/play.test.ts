@@ -42,10 +42,10 @@ test("no wave starts while a milestone's offer is open; once a creature is taken
 });
 
 test("Settings: down to it, Enter, then right turns the volume up and Escape goes back", () => {
-  const frames = parseInputScript("_*2, down, _*2, Enter, _*3, right, _*2, right, _*2, Escape, _*3", { bindings });
+  const frames = parseInputScript("_*2, down, _*2, down, _*2, Enter, _*3, right, _*2, right, _*2, Escape, _*3", { bindings });
   const { states } = runScript(gameConfig, frames, seen);
   const last = states[states.length - 1]!;
-  assert.equal(states[6]!.screen, "settings");
+  assert.equal(states[8]!.screen, "settings");
   assert.equal(last.volume, 10);
   assert.equal(last.screen, "title");
 });

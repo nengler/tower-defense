@@ -94,3 +94,13 @@ test("a creature just taken is being placed: its card waits until it is on the f
   assert.equal(useGame.getState().moving, false);
   assert.ok(states.length > 0);
 });
+
+test("Glowmire, from the title's second button: a creature placed beside its path holds its first wave", () => {
+  const { states } = play(`_*2, down, _*2, Enter, _*3, Enter, _*2, ${tile(4, 2)}, _, Space, _*2100`);
+  const last = states[states.length - 1]!;
+  assert.equal(useGame.getState().map, "glowmire");
+  assert.deepEqual(last.at, ["4,2"]);
+  assert.equal(last.wave, 1);
+  assert.equal(last.active, false, "the wave is over");
+  assert.ok(last.xp[0]! > 1000, "it earned XP");
+});

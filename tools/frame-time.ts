@@ -3,17 +3,21 @@
  * screen, the draw list, collisions, against a recording backend under Node. It prints the mean, the 99th percentile and the
  * slowest step of each wave, and the most draw records a frame of it had. Drawing in libtse is not in it.
  *
- *   node tools/frame-time.ts
+ *   node tools/frame-time.ts [--map glowmire]
  */
 import { createPlayer, parseInputScript, RecordingBackend } from "@tsengine/player";
 import { findComponent } from "@tsengine/testing";
 
 import { bindings, gameConfig } from "../game.ts";
 import { useGame } from "../src/GameState.ts";
+import type { MapId } from "../src/rules/map.ts";
 import { WAVE_COUNT } from "../src/rules/waves.ts";
 import { manage, STRATEGIES } from "./balance.ts";
 
-const strategy = STRATEGIES[0]!;
+const mapArg = process.argv.indexOf("--map");
+const map = (mapArg >= 0 ? process.argv[mapArg + 1] : "meadow") as MapId;
+// The managed strategy of that map.
+const strategy = STRATEGIES.find((s) => s.manage && (s.map ?? "meadow") === map) ?? STRATEGIES[0]!;
 // Only the latest frame is kept, and it is decoded (for its record count) once a second: decoding every frame costs more than the game.
 const backend = new RecordingBackend({ keepFrames: 1 });
 const player = createPlayer(backend, { ...gameConfig, warn: () => {} });
@@ -21,7 +25,7 @@ const { start, takeOffer, tapTile } = useGame.actions();
 const space = parseInputScript("Space", { bindings })[0]!;
 
 player.step();
-start();
+start(map);
 player.step();
 const battle = findComponent("Play", player.world.root) as unknown as { $s_active: boolean; $s_lives: number };
 

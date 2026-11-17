@@ -10,10 +10,11 @@ import { useGame } from "../src/GameState.ts";
 import { ENEMIES } from "../src/rules/enemies.ts";
 import { BUFF_XP_SHARE } from "../src/rules/progress.ts";
 import { newCreature } from "../src/rules/roster.ts";
-import { PATH, pathAt } from "../src/rules/map.ts";
+import { MAPS, pathAt } from "../src/rules/map.ts";
 import { spawnsOf } from "../src/rules/waves.ts";
 
 const STEPS_A_SECOND = 60;
+const PATH = MAPS.meadow.path;
 const START = pathAt(PATH, 0);
 
 function enemy(kind: "crawler" | "skitter" = "crawler", maxHp = 1000) {

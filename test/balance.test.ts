@@ -17,6 +17,12 @@ test("managing moves matters: the managed run wins, the same run that never touc
   assert.equal(result["never touches moves"]!.won, false);
 });
 
+test("Glowmire too: its tougher waves are won by managing moves and lost without", () => {
+  assert.equal(result["managed, Glowmire"]!.won, true);
+  assert.ok(result["managed, Glowmire"]!.lives.at(-1)! < 10, "but it is not free: some lives are lost");
+  assert.equal(result["never touches moves, Glowmire"]!.won, false);
+});
+
 test("creatures are needed: with none on the field the run is lost early", () => {
   assert.equal(result["no creatures placed"]!.won, false);
   assert.ok(result["no creatures placed"]!.lives.indexOf(0) <= 2);

@@ -2,7 +2,8 @@ import { after, AnimatedSprite, cancelTimer, Collider, Entity, Shape, useMutable
 
 import { afterArmor, ENEMIES, type EnemyKind } from "./rules/enemies.ts";
 import { ENEMY_ANIMATIONS } from "./rules/draw.ts";
-import { PATH, pathAt } from "./rules/map.ts";
+import { mapOf, pathAt } from "./rules/map.ts";
+import { useGame } from "./GameState.ts";
 import type { Status } from "./rules/moves.ts";
 import { TYPE_COLOR, typeFactor } from "./rules/types.ts";
 
@@ -24,7 +25,7 @@ interface EnemyProps {
 }
 
 /**
- * One enemy. It walks the path at its kind's speed, and takes the blasts sent to it (`onReceive`): a creature sends a move to the
+ * One enemy. It walks the map's path at its kind's speed, and takes the blasts sent to it (`onReceive`): a creature sends a move to the
  * enemy it aimed at, or to every enemy whose middle is in its area. What a blast leaves stays on it as state that counts down: stunned (it stops), slowed, burning (damage over time)
  * and soaked. A combo move does more against an enemy with the status it plays off (soaked for Volt moves, burning, stunned,
  * slowed), and a soak is used up by it. An armoured kind takes its armour off every hit (not a burn). It draws its kind's walk
@@ -33,6 +34,8 @@ interface EnemyProps {
  */
 export function Enemy({ id, kind, maxHp, onKilled, onLeaked, onDamaged, onHit }: EnemyProps) {
   const info = ENEMIES[kind];
+  const mapId = useGame((g) => g.map);
+  const path = mapOf(mapId).path;
   const s = useMutable({
     dist: 0,
     hp: maxHp,
@@ -48,7 +51,7 @@ export function Enemy({ id, kind, maxHp, onKilled, onLeaked, onDamaged, onHit }:
     flash: false,
     flashTimer: 0,
   });
-  const at = pathAt(PATH, s.dist);
+  const at = pathAt(path, s.dist);
   const half = info.size / 2;
 
   /** Take damage, reporting what was really taken (not past zero). */
@@ -86,7 +89,7 @@ export function Enemy({ id, kind, maxHp, onKilled, onLeaked, onDamaged, onHit }:
     const speed = info.speed * (s.slowFor > 0 ? 1 - s.slow : 1);
     if (s.slowFor > 0) s.slowFor = Math.max(0, s.slowFor - dt);
     const next = s.dist + speed * dt;
-    if (next >= PATH.length) {
+    if (next >= path.length) {
       onLeaked(id, kind);
       return;
     }

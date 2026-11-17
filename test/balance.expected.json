@@ -29,6 +29,36 @@
     ],
     "won": false
   },
+  "managed, Glowmire": {
+    "lives": [
+      10,
+      10,
+      10,
+      10,
+      6,
+      6,
+      4,
+      4,
+      4,
+      4
+    ],
+    "won": true
+  },
+  "never touches moves, Glowmire": {
+    "lives": [
+      10,
+      10,
+      10,
+      6,
+      2,
+      2,
+      0,
+      null,
+      null,
+      null
+    ],
+    "won": false
+  },
   "no creatures placed": {
     "lives": [
       5,

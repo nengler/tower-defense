@@ -4,6 +4,7 @@ import { setVolume, sfx } from "./effects.ts";
 
 import type { MoveId } from "./rules/moves.ts";
 import { bench, earn, equipMove, newCreature, place, raiseMove, standingAt, swap, unequipMove, type Owned } from "./rules/roster.ts";
+import { MAPS, type MapId } from "./rules/map.ts";
 import { MASTERY_PER_RUN, MASTERY_PER_WAVE, masteryLevel } from "./rules/progress.ts";
 import { pick } from "./rules/rng.ts";
 import { SPECIES_IDS, type SpeciesId } from "./rules/species.ts";
@@ -19,6 +20,8 @@ type Screen = "title" | "settings" | "play" | "won" | "lost";
 export const useGame = createGameState(
   {
     screen: "title" as Screen,
+    /** The map of this run (and of the last, for the end screen). */
+    map: "meadow" as MapId,
     paused: false,
     /** The volume, 0 to 10. */
     volume: 8,
@@ -39,9 +42,10 @@ export const useGame = createGameState(
     mastery: { emberling: 0, puddlepup: 0, voltkit: 0, pebblet: 0, sproutling: 0 } as Readonly<Record<SpeciesId, number>>,
   },
   {
-    /** A new run: no creatures, and the first milestone's offer. */
-    start(s) {
+    /** A new run on a map: no creatures, and the first milestone's offer. */
+    start(s, map: MapId = "meadow") {
       s.screen = "play";
+      s.map = map;
       s.paused = false;
       s.roster = [];
       s.nextCreature = 1;
@@ -138,7 +142,7 @@ export const useGame = createGameState(
       }
       if (s.selected < 0) return;
       const before = s.roster;
-      s.roster = place(s.roster, s.selected, col, row);
+      s.roster = place(s.roster, s.selected, col, row, MAPS[s.map]);
       if (s.roster !== before) {
         s.moving = false;
         sfx.play("pick");

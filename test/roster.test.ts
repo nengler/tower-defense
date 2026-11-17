@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { PATH_TILES } from "../src/rules/map.ts";
+import { MAPS } from "../src/rules/map.ts";
 import { bench, canPlace, swap, earn, FIELD_LIMIT, newCreature, onField, place, type Owned } from "../src/rules/roster.ts";
 
 const team = (n: number): readonly Owned[] => Array.from({ length: n }, (_, i) => newCreature(i + 1, "voltkit", 0));
@@ -15,7 +15,7 @@ test("a new creature is level 1 on the bench, with its first move equipped (and 
 });
 
 test("a creature goes on any free tile that is not path, and moves from tile to tile", () => {
-  const [pathTile] = [...PATH_TILES];
+  const [pathTile] = [...MAPS.meadow.pathTiles];
   const [col, row] = pathTile!.split(",").map(Number) as [number, number];
   let r = team(2);
   assert.equal(canPlace(r, 1, col, row), false, "not on the path");
@@ -64,4 +64,16 @@ test("swap: two on the field trade tiles; one from the bench takes the other's t
   assert.equal(r[0]!.col, -1, "the one it replaced is on the bench");
   assert.equal(onField(r).length, 2);
   assert.equal(swap(r, 1, 1), r);
+});
+
+test("on Glowmire, water, lanterns and mushrooms take tiles too", () => {
+  const bog = MAPS.glowmire;
+  const r = team(1);
+  const [water] = [...bog.water];
+  const [wc, wr] = water!.split(",").map(Number) as [number, number];
+  assert.equal(canPlace(r, 1, wc, wr, bog), false, "not in the water");
+  assert.equal(canPlace(r, 1, bog.lanterns[0]![0], bog.lanterns[0]![1], bog), false, "not on a lantern");
+  assert.equal(canPlace(r, 1, bog.mushrooms[0]![0], bog.mushrooms[0]![1], bog), false, "not on a mushroom");
+  assert.equal(canPlace(r, 1, 4, 2, bog), true, "but beside the path, yes");
+  assert.equal(canPlace(r, 1, wc, wr), true, "the same tile on the Meadow is grass");
 });

@@ -4,7 +4,8 @@
  *
  * - `creatures.png`: 12 × 12 frames, two to a row (an idle bob), one row a species in `SPECIES_IDS` order.
  * - `enemies.png`: 12 × 12 frames, two to a row (a walk), one row a kind in `ENEMY_KINDS` order.
- * - `tiles.png`: 16 × 16 tiles in a row: grass, grass with a tuft, path.
+ * - `tiles.png`: 16 × 16 tiles in a row: the Meadow's grass, grass with a tuft and path; then Glowmire's grass, grass with reeds,
+ *   cobbled path and water; then a lantern and a glow-mushroom (on a clear background, drawn over the grass).
  *
  *   node tools/make-art.ts
  */
@@ -186,7 +187,7 @@ function sheet(name: string, rows: readonly Draw[]): void {
 }
 
 function tiles(): void {
-  const c = new Canvas(48, 16);
+  const c = new Canvas(16 * 9, 16);
   const GRASS: Rgb = [0x22, 0x32, 0x28];
   const GRASS_DARK: Rgb = [0x1d, 0x2a, 0x22];
   const TUFT: Rgb = [0x3a, 0x5a, 0x40];
@@ -211,6 +212,79 @@ function tiles(): void {
     [11, 4],
   ] as const)
     c.set(16 + x, y, TUFT);
+
+  // Glowmire, a bog at night: cooler, bluer grass (the light map darkens it further), cobbles, and water with ripple lines.
+  const BOG: Rgb = [0x2a, 0x40, 0x44];
+  const BOG_DARK: Rgb = [0x22, 0x34, 0x3a];
+  const REED: Rgb = [0x4a, 0x6a, 0x58];
+  const REED_TIP: Rgb = [0x7a, 0x5a, 0x3a];
+  const COBBLE: Rgb = [0x6a, 0x6e, 0x7a];
+  const COBBLE_LIGHT: Rgb = [0x84, 0x88, 0x94];
+  const MORTAR: Rgb = [0x3c, 0x3e, 0x4a];
+  const WATER: Rgb = [0x1e, 0x46, 0x6e];
+  const WATER_DEEP: Rgb = [0x18, 0x38, 0x5a];
+  const RIPPLE: Rgb = [0x4a, 0x7e, 0xaa];
+  for (let y = 0; y < 16; y++)
+    for (let x = 0; x < 16; x++) {
+      const n = noise(x, y);
+      const edge = x === 15 || y === 15;
+      c.set(48 + x, y, edge || n === 0 ? BOG_DARK : BOG);
+      c.set(64 + x, y, edge || n === 0 ? BOG_DARK : BOG);
+      // Cobbles: a brick bond of 5 × 4 stones, each lit on its top-left.
+      const row = Math.floor(y / 4);
+      const sx = (x + (row % 2) * 2) % 5;
+      const sy = y % 4;
+      c.set(80 + x, y, sx === 4 || sy === 3 ? MORTAR : sx === 0 || sy === 0 ? COBBLE_LIGHT : n === 0 ? MORTAR : COBBLE);
+      c.set(96 + x, y, (x + y * 3) % 11 === 0 ? WATER_DEEP : WATER);
+    }
+  for (const [x, y, h] of [
+    [3, 12, 6],
+    [5, 13, 8],
+    [7, 12, 5],
+    [11, 10, 6],
+    [12, 11, 7],
+  ] as const) {
+    c.rect(64 + x, y - h, 1, h, REED);
+    c.rect(64 + x, y - h - 2, 1, 2, REED_TIP);
+  }
+  for (const [x, y, w] of [
+    [2, 3, 5],
+    [9, 6, 4],
+    [4, 10, 6],
+    [11, 13, 3],
+  ] as const)
+    c.rect(96 + x, y, w, 1, RIPPLE);
+
+  // A lantern on a post: its glass is what the light seems to come from.
+  const POST: Rgb = [0x3a, 0x2e, 0x2a];
+  const BRASS: Rgb = [0x9a, 0x7a, 0x3a];
+  const GLASS: Rgb = [0xff, 0xd8, 0x80];
+  const FLAME: Rgb = [0xff, 0xf6, 0xd0];
+  c.rect(112 + 7, 7, 2, 8, POST);
+  c.rect(112 + 5, 14, 6, 1, POST);
+  c.rect(112 + 5, 2, 6, 1, BRASS);
+  c.rect(112 + 5, 3, 6, 4, GLASS);
+  c.rect(112 + 5, 3, 1, 4, BRASS);
+  c.rect(112 + 10, 3, 1, 4, BRASS);
+  c.rect(112 + 7, 4, 2, 2, FLAME);
+  c.rect(112 + 6, 7, 4, 1, BRASS);
+  c.set(112 + 7, 1, BRASS);
+  c.set(112 + 8, 1, BRASS);
+
+  // Glow-mushrooms: a tall one and a small one, teal caps with pale spots.
+  const STEM: Rgb = [0xc8, 0xd8, 0xd0];
+  const CAP: Rgb = [0x3a, 0xd8, 0xc0];
+  const CAP_DARK: Rgb = [0x22, 0x90, 0x88];
+  const SPOT: Rgb = [0xd0, 0xff, 0xf4];
+  c.rect(128 + 5, 7, 2, 7, STEM);
+  c.disc(128 + 6, 5.5, 3.6, CAP);
+  c.rect(128 + 2, 7, 9, 1, CAP_DARK);
+  c.set(128 + 4, 4, SPOT);
+  c.set(128 + 7, 3, SPOT);
+  c.set(128 + 8, 5, SPOT);
+  c.rect(128 + 11, 11, 1, 3, STEM);
+  c.disc(128 + 11.5, 10.5, 2, CAP);
+  c.set(128 + 11, 10, SPOT);
   c.write("tiles.png");
 }
 

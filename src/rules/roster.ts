@@ -1,7 +1,7 @@
 import type { MoveId } from "./moves.ts";
 import { addXp, knownAt, slotsFor } from "./progress.ts";
 import type { SpeciesId } from "./species.ts";
-import { COLS, isPath, ROWS } from "./map.ts";
+import { isOpen, MAPS, type GameMap } from "./map.ts";
 
 /** At most this many creatures on the field at once. */
 export const FIELD_LIMIT = 5;
@@ -38,18 +38,21 @@ export function standingAt(roster: readonly Owned[], col: number, row: number): 
   return roster.find((c) => c.col === col && c.row === row);
 }
 
-/** Can creature `id` go on this tile: on the field, not path, free, and (if it comes from the bench) under the limit. */
-export function canPlace(roster: readonly Owned[], id: number, col: number, row: number): boolean {
+/**
+ * Can creature `id` go on this tile of the map: on the field, open (not path, water or a lantern), free, and (if it comes from the
+ * bench) under the limit.
+ */
+export function canPlace(roster: readonly Owned[], id: number, col: number, row: number, map: GameMap = MAPS.meadow): boolean {
   const c = roster.find((o) => o.id === id);
   if (c === undefined) return false;
-  if (col < 0 || col >= COLS || row < 0 || row >= ROWS || isPath(col, row)) return false;
+  if (!isOpen(map, col, row)) return false;
   if (standingAt(roster, col, row) !== undefined) return false;
   return c.col >= 0 || onField(roster).length < FIELD_LIMIT;
 }
 
 /** Put creature `id` on a tile (from the bench or from another tile). Unchanged if it cannot go there. */
-export function place(roster: readonly Owned[], id: number, col: number, row: number): readonly Owned[] {
-  if (!canPlace(roster, id, col, row)) return roster;
+export function place(roster: readonly Owned[], id: number, col: number, row: number, map: GameMap = MAPS.meadow): readonly Owned[] {
+  if (!canPlace(roster, id, col, row, map)) return roster;
   return roster.map((c) => (c.id === id ? { ...c, col, row } : c));
 }
 

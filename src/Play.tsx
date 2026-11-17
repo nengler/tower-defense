@@ -17,7 +17,9 @@ import { ENEMIES, hpOf, type EnemyKind } from "./rules/enemies.ts";
 import { MOVES } from "./rules/moves.ts";
 import { BUFF_XP_SHARE } from "./rules/progress.ts";
 import { TYPE_COLOR } from "./rules/types.ts";
-import { centre } from "./rules/map.ts";
+import { centre, mapOf, toughnessAt } from "./rules/map.ts";
+import { SPECIES } from "./rules/species.ts";
+import { Night } from "./Night.tsx";
 import { creatureById, onField } from "./rules/roster.ts";
 import { Spots } from "./Spots.tsx";
 import { Tiles } from "./Tiles.tsx";
@@ -43,6 +45,8 @@ export function Play() {
   const chosen = creatureById(team, selectedId);
   const offering = useGame((s) => s.offer.length > 0);
   const moving = useGame((s) => s.moving);
+  const mapId = useGame((s) => s.map);
+  const night = mapOf(mapId).night;
   const { pause, finish, gainXp, benchSelected, startMove, choose, deselect, milestone, awardWave } = useGame.actions();
 
   const s = useMutable({
@@ -80,7 +84,7 @@ export function Play() {
     s.clock += dt;
     while (s.spawned < spawns.length && spawns[s.spawned]!.at <= s.clock) {
       const kind = spawns[s.spawned]!.kind;
-      s.enemies = [...s.enemies, { id: s.nextId, kind, maxHp: hpOf(kind, s.wave) }];
+      s.enemies = [...s.enemies, { id: s.nextId, kind, maxHp: hpOf(kind, s.wave) * toughnessAt(mapOf(mapId), s.wave) }];
       s.spawned += 1;
       s.nextId += 1;
     }
@@ -145,7 +149,6 @@ export function Play() {
   return (
     <Entity>
       <Field />
-      <Spots />
       <Tiles />
       {onField(team).map((c) => (
         <Creature
@@ -166,6 +169,14 @@ export function Play() {
       {s.effects.map((e) => (
         <Effect key={e.id} {...e} onDone={shown} />
       ))}
+      {night && (
+        <Night
+          map={mapId}
+          creatures={onField(team).map((c) => ({ id: c.id, x: centre(c.col, c.row).x, y: centre(c.col, c.row).y, type: SPECIES[c.species].type }))}
+          effects={s.effects}
+        />
+      )}
+      <Spots />
       <ParticleLayer particles={fx} />
       {s.popups.map((p) => (
         <Popup key={p.id} {...p} onDone={popped} />

@@ -6,7 +6,7 @@ field and which moves they have equipped, in what order.
 
 ## Runs
 
-- A **run** is 10 waves on one map. Every run starts fresh: no creatures, no levels.
+- A **run** is 10 waves on one map, chosen on the title screen. Every run starts fresh: no creatures, no levels.
 - **Enemies cannot hurt creatures.** Enemies walk the path; each one that reaches the end costs a life. No lives left ends the run.
 - At **milestones** (before waves 1, 2, 4, 6, 8 and 10) you pick one new creature from an offer of three. A run starts with no
   creatures: the first milestone gives the first one. The sixth is one more than the field holds.
@@ -129,6 +129,27 @@ may go to; pressing one moves it there, and pressing another creature trades the
 bench). A creature just taken at a milestone starts out being placed, so its card never covers half of the field before it has a
 tile. Escape calls it off. Moving works between waves and during them.
 
+## Maps
+
+| Map | Path | What else |
+| --- | --- | --- |
+| Meadow | Seven stretches, two deep bends | Open grass: any tile that is not path. |
+| Glowmire | Eleven stretches, three bends: longer | Night. Ponds fill the hollows inside the bends, and lanterns and glow-mushrooms take tiles, so the spots beside two stretches are few. Its enemies gain 12 % more hit points each wave than the Meadow's (the longer path gives the creatures more time). |
+
+**Glowmire's night** is drawn with the engine's layers, lights and shaders (`src/Night.tsx`, `assets/*.glsl`):
+
+- A light map (`<Lighting>`) darkens the field to a moonlit blue except where a light reaches: flickering lanterns, breathing
+  mushrooms, a light around each creature in its type's colour, a dim one on each enemy (a crowd in the dark can still be seen
+  coming), a flash where each move lands, and fireflies. `night.glsl` cuts the light into bands with an ordered dither (pixel-art light
+  pools, not a smooth gradient), tints the shadows blue and darkens the corners.
+- An additive glow layer puts the brightest lights (lanterns, mushrooms, moves, fireflies) on top, past the colours of the art, which
+  a multiplied light map cannot do.
+- The ponds are a layer of their own; `water.glsl` sways each row sideways by whole pixels and drifts glints across them.
+- `fog.glsl` drifts two octaves of noise over the field as mist.
+
+The software renderer (tests, `tse screenshot` without `--gpu`) runs no shaders: the night is still lit, without the bands, ripples
+and mist.
+
 ## Enemies
 
 | Enemy | Type | Does |
@@ -141,8 +162,9 @@ tile. Escape calls it off. Moving works between waves and during them.
 Every wave adds 38 % to every enemy's hit points. The waves start plain and bring in mites (wave 4) and shells (wave 5).
 
 **Why moves need managing.** Each species learns its best area move last, at level 7, when its three slots are already full: it is
-only used if the player swaps it in. `tools/balance.ts` plays whole runs headless; its table (`test/balance.expected.json`) shows a
-run that re-equips its best moves winning, and the same run that never touches its moves losing. The tests keep it that way.
+only used if the player swaps it in. `tools/balance.ts` plays whole runs headless, on both maps; its table
+(`test/balance.expected.json`) shows a run that re-equips its best moves winning, and the same run that never touches its moves
+losing. The tests keep it that way.
 
 ## The first version
 

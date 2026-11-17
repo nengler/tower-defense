@@ -20,6 +20,7 @@ import { slotsFor } from "../src/rules/progress.ts";
 import { equipMove, unequipMove, type Owned } from "../src/rules/roster.ts";
 import type { SpeciesId } from "../src/rules/species.ts";
 import { WAVE_COUNT } from "../src/rules/waves.ts";
+import type { MapId } from "../src/rules/map.ts";
 
 export interface Strategy {
   readonly name: string;
@@ -29,6 +30,8 @@ export interface Strategy {
   readonly spots: readonly (readonly [number, number])[];
   /** Re-equip each creature's best moves (areas first) whenever it learns one; otherwise never touch them. */
   readonly manage: boolean;
+  /** The map it plays (the Meadow if not said). */
+  readonly map?: MapId;
 }
 
 /** Beside the path's bends, where a creature covers two stretches of it. */
@@ -41,9 +44,21 @@ const BENDS: readonly (readonly [number, number])[] = [
   [15, 6],
 ];
 
+/** Glowmire's few spots beside two stretches of path, between its ponds and lanterns. */
+const BOG_SPOTS: readonly (readonly [number, number])[] = [
+  [4, 2],
+  [8, 3],
+  [12, 4],
+  [15, 5],
+  [5, 5],
+  [11, 3],
+];
+
 export const STRATEGIES: readonly Strategy[] = [
   { name: "managed", picks: ["emberling", "puddlepup", "voltkit", "emberling", "voltkit", "puddlepup"], spots: BENDS, manage: true },
   { name: "never touches moves", picks: ["emberling", "puddlepup", "voltkit", "emberling", "voltkit", "puddlepup"], spots: BENDS, manage: false },
+  { name: "managed, Glowmire", picks: ["emberling", "puddlepup", "voltkit", "emberling", "voltkit", "puddlepup"], spots: BOG_SPOTS, manage: true, map: "glowmire" },
+  { name: "never touches moves, Glowmire", picks: ["emberling", "puddlepup", "voltkit", "emberling", "voltkit", "puddlepup"], spots: BOG_SPOTS, manage: false, map: "glowmire" },
   { name: "no creatures placed", picks: ["emberling", "puddlepup", "voltkit", "emberling", "voltkit", "puddlepup"], spots: [], manage: false },
 ];
 
@@ -82,7 +97,7 @@ export interface Result {
 export function run(strategy: Strategy): Result {
   const t = render(Play, {}, { collisions: true });
   const { start, takeOffer, tapTile } = useGame.actions();
-  start();
+  start(strategy.map ?? "meadow");
   let joined = 0;
   const takeMilestone = () => {
     const offer = useGame.getState().offer;

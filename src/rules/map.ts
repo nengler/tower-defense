@@ -43,29 +43,46 @@ export function pathAt(path: Path, distance: number): Point {
 /** The middle of a tile. */
 export const centre = (col: number, row: number): Point => ({ x: col * TILE + TILE / 2, y: row * TILE + TILE / 2 });
 
-/**
- * The path's corners as tiles, from just off the left edge to just off the right. Every segment is straight across or down, so
- * the tiles it crosses are the path.
- */
-const CORNERS: readonly (readonly [number, number])[] = [
-  [-1, 1],
-  [4, 1],
-  [4, 6],
-  [9, 6],
-  [9, 2],
-  [14, 2],
-  [14, 7],
-  [20, 7],
-];
+/** A tile as `[col, row]`. */
+export type Tile = readonly [number, number];
 
-export const PATH = makePath(CORNERS.map(([col, row]) => centre(col, row)));
+export type MapId = "meadow" | "glowmire";
+export const MAP_IDS: readonly MapId[] = ["meadow", "glowmire"];
 
-/** Every tile the path crosses, as `col,row`. */
-function pathTiles(): ReadonlySet<string> {
+/** One map: the path the enemies walk, and what else stands on the field. */
+export interface GameMap {
+  readonly id: MapId;
+  readonly name: string;
+  /** A few words for the title screen. */
+  readonly blurb: string;
+  /** Night: drawn under a light map (`Night.tsx`), with its own shaders. */
+  readonly night: boolean;
+  /**
+   * Enemies here gain this much more hit points each wave, on top of every map's growth (1.1 = 10 % more each wave than on the
+   * Meadow): a longer path gives the creatures more time, so its later waves are tougher. 1 for none.
+   */
+  readonly toughness: number;
+  /**
+   * The path's corners as tiles, from just off the left edge to just off the right. Every segment is straight across or down, so
+   * the tiles it crosses are the path.
+   */
+  readonly corners: readonly Tile[];
+  readonly path: Path;
+  /** Every tile the path crosses, as `col,row`. */
+  readonly pathTiles: ReadonlySet<string>;
+  /** Water: no creature stands there. */
+  readonly water: ReadonlySet<string>;
+  /** Lanterns and glow-mushrooms: lights that stand on a tile, which no creature can then take. */
+  readonly lanterns: readonly Tile[];
+  readonly mushrooms: readonly Tile[];
+}
+
+/** Every tile a run of corners crosses, as `col,row`. */
+function tilesAlong(corners: readonly Tile[]): ReadonlySet<string> {
   const tiles = new Set<string>();
-  for (let i = 1; i < CORNERS.length; i++) {
-    const [c0, r0] = CORNERS[i - 1] as readonly [number, number];
-    const [c1, r1] = CORNERS[i] as readonly [number, number];
+  for (let i = 1; i < corners.length; i++) {
+    const [c0, r0] = corners[i - 1] as Tile;
+    const [c1, r1] = corners[i] as Tile;
     const steps = Math.max(Math.abs(c1 - c0), Math.abs(r1 - r0));
     for (let k = 0; k <= steps; k++) {
       const col = c0 + Math.sign(c1 - c0) * k;
@@ -76,8 +93,111 @@ function pathTiles(): ReadonlySet<string> {
   return tiles;
 }
 
-export const PATH_TILES = pathTiles();
+/** Every tile in the rectangle from (c0, r0) to (c1, r1), inclusive. */
+function block(c0: number, r0: number, c1: number, r1: number): string[] {
+  const tiles: string[] = [];
+  for (let col = c0; col <= c1; col++) for (let row = r0; row <= r1; row++) tiles.push(`${col},${row}`);
+  return tiles;
+}
 
-export function isPath(col: number, row: number): boolean {
-  return PATH_TILES.has(`${col},${row}`);
+function makeMap(
+  id: MapId,
+  name: string,
+  blurb: string,
+  night: boolean,
+  corners: readonly Tile[],
+  extra: { toughness?: number; water?: readonly string[]; lanterns?: readonly Tile[]; mushrooms?: readonly Tile[] } = {}
+): GameMap {
+  return {
+    id,
+    name,
+    blurb,
+    night,
+    toughness: extra.toughness ?? 1,
+    corners,
+    path: makePath(corners.map(([col, row]) => centre(col, row))),
+    pathTiles: tilesAlong(corners),
+    water: new Set(extra.water ?? []),
+    lanterns: extra.lanterns ?? [],
+    mushrooms: extra.mushrooms ?? [],
+  };
+}
+
+export const MAPS: Readonly<Record<MapId, GameMap>> = {
+  meadow: makeMap("meadow", "Meadow", "THE FIRST FIELD", false, [
+    [-1, 1],
+    [4, 1],
+    [4, 6],
+    [9, 6],
+    [9, 2],
+    [14, 2],
+    [14, 7],
+    [20, 7],
+  ]),
+  /**
+   * A bog at night: a longer path that winds through three bends, but ponds fill the hollows inside them, and lanterns and
+   * mushrooms take more tiles, so the spots that cover two stretches of path are few.
+   */
+  glowmire: makeMap(
+    "glowmire",
+    "Glowmire",
+    "A BOG AT NIGHT. LONG PATH, FEW SPOTS",
+    true,
+    [
+      [-1, 4],
+      [2, 4],
+      [2, 1],
+      [6, 1],
+      [6, 7],
+      [10, 7],
+      [10, 2],
+      [14, 2],
+      [14, 6],
+      [17, 6],
+      [17, 3],
+      [20, 3],
+    ],
+    {
+      toughness: 1.12,
+      water: [...block(7, 4, 9, 6), ...block(11, 5, 13, 8), ...block(0, 6, 3, 8), ...block(15, 0, 19, 1), "18,2"],
+      lanterns: [
+        [3, 3],
+        [9, 2],
+        [13, 3],
+        [18, 7],
+      ],
+      mushrooms: [
+        [0, 0],
+        [5, 8],
+        [16, 4],
+        [4, 6],
+        [8, 8],
+      ],
+    }
+  ),
+};
+
+/**
+ * The map with this id. Takes a plain string because a component that selects `map` from the game state sees it as one (the
+ * compiler widens a union of string literals in the state to `string`); an unknown id is the Meadow.
+ */
+/** What an enemy's hit points are multiplied by on this map in this wave (counted from 1). */
+export function toughnessAt(map: GameMap, wave: number): number {
+  return map.toughness ** Math.max(0, wave - 1);
+}
+
+export function mapOf(id: string): GameMap {
+  return MAPS[id as MapId] ?? MAPS.meadow;
+}
+
+/** Can a creature stand on this tile of the map: on the grid, not path, not water, no lantern or mushroom. */
+export function isOpen(map: GameMap, col: number, row: number): boolean {
+  if (col < 0 || col >= COLS || row < 0 || row >= ROWS) return false;
+  const key = `${col},${row}`;
+  if (map.pathTiles.has(key) || map.water.has(key)) return false;
+  return !map.lanterns.some(([c, r]) => c === col && r === row) && !map.mushrooms.some(([c, r]) => c === col && r === row);
+}
+
+export function isPath(map: GameMap, col: number, row: number): boolean {
+  return map.pathTiles.has(`${col},${row}`);
 }

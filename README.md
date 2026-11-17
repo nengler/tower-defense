@@ -19,12 +19,19 @@ npm run package  # dist/tower-defense/: the packaged game
 
 ```sh
 node tools/balance.ts       # whole runs played headless by fixed strategies: lives left after each wave (--write updates the test's table)
-node tools/frame-time.ts    # script time of each step of a whole run, wave by wave: the mean, the 99th percentile and the slowest
+node tools/frame-time.ts    # script time of each step of a whole run, wave by wave: the mean, the 99th percentile and the slowest (--map glowmire)
 node tools/make-art.ts      # draws assets/*.png
 node tools/make-sounds.ts   # writes assets/*.wav
 ```
 
 The first two need `npm run build` first: they import the compiled components in `generated/`.
+
+To see Glowmire's shaders in a screenshot, run the GPU screenshot under Xvfb yourself (with engine 0.5.1, `--gpu` without a display
+tries to start itself again from a file the release does not ship):
+
+```sh
+xvfb-run -a -s "-screen 0 1280x720x24" npx tse screenshot . --gpu --scale 3 --script "_*2, down, _*2, Enter, _*3, Enter, _*2, click@72,40, _*2, Escape, _*2, Space, _*400" --at 400
+```
 
 ## Updating the engine
 
