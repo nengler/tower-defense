@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 
 import { afterArmor, burrowed, BURROW, cycleType, ENEMIES, ENEMY_KINDS, hpOf } from "../src/rules/enemies.ts";
-import { MAP_IDS, MAPS, isPath, mapOf, terrainAt } from "../src/rules/map.ts";
+import { MAP_IDS, MAPS, isPath, terrainAt } from "../src/rules/map.ts";
 import { MARKS, tilesUnder } from "../src/rules/marks.ts";
 import { MOVE_IDS, MOVES, REACTION_OF } from "../src/rules/moves.ts";
 import { addXp, learnLevel, masteryLevel, MAX_LEVEL, slotsFor, xpToNext } from "../src/rules/progress.ts";
@@ -197,7 +197,6 @@ test("maps: terrain is never on the path, every type has terrain on every map, a
   assert.ok(isPath("meadow", 0, 1));
   assert.equal(terrainAt("meadow", 5, 5), "tide");
   assert.equal(terrainAt("meadow", 0, 0), null);
-  assert.equal(mapOf("nowhere").id, "meadow");
   assert.ok(MAPS.gauntlet.path.length < MAPS.meadow.path.length, "the gauntlet is the short one");
 });
 

@@ -2,10 +2,10 @@ import { Entity, Sprite } from "@tsengine/runtime/jsx";
 
 import { useGame } from "./GameState.ts";
 import { TILE_FRAME } from "./rules/draw.ts";
-import { COLS, mapOf, ROWS, TILE, tileKey } from "./rules/map.ts";
+import { COLS, mapOf, ROWS, TILE, tileKey, type MapId } from "./rules/map.ts";
 
 /** Every tile of a map's grid, in reading order, with the frame of `assets/tiles.png` it shows. */
-function tilesOf(map: string): { readonly id: number; readonly col: number; readonly row: number; readonly frame: number }[] {
+function tilesOf(map: MapId): { readonly id: number; readonly col: number; readonly row: number; readonly frame: number }[] {
   const { pathTiles, terrain } = mapOf(map);
   return Array.from({ length: COLS * ROWS }, (_, i) => {
     const col = i % COLS;

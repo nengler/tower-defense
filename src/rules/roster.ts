@@ -1,7 +1,7 @@
 import type { MoveId } from "./moves.ts";
 import { addXp, learnLevel, slotsFor } from "./progress.ts";
 import { EVOLVE_AT, FORMS, SPECIES, type FormId, type SpeciesId } from "./species.ts";
-import { COLS, isPath, ROWS } from "./map.ts";
+import { COLS, isPath, ROWS, type MapId } from "./map.ts";
 
 /** At most this many creatures on the field at once. */
 export const FIELD_LIMIT = 5;
@@ -99,7 +99,7 @@ export function standingAt(roster: readonly Owned[], col: number, row: number): 
 }
 
 /** Can creature `id` go on this tile: on the field, not path, free, and (if it comes from the bench) under the limit. */
-export function canPlace(roster: readonly Owned[], map: string, id: number, col: number, row: number): boolean {
+export function canPlace(roster: readonly Owned[], map: MapId, id: number, col: number, row: number): boolean {
   const c = roster.find((o) => o.id === id);
   if (c === undefined) return false;
   if (col < 0 || col >= COLS || row < 0 || row >= ROWS || isPath(map, col, row)) return false;
@@ -108,7 +108,7 @@ export function canPlace(roster: readonly Owned[], map: string, id: number, col:
 }
 
 /** Put creature `id` on a tile (from the bench or from another tile). Unchanged if it cannot go there. */
-export function place(roster: readonly Owned[], map: string, id: number, col: number, row: number): readonly Owned[] {
+export function place(roster: readonly Owned[], map: MapId, id: number, col: number, row: number): readonly Owned[] {
   if (!canPlace(roster, map, id, col, row)) return roster;
   return roster.map((c) => (c.id === id ? { ...c, col, row } : c));
 }
