@@ -1,10 +1,15 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { earn, equipMove, newCreature, raiseMove, unequipMove, type Owned } from "../src/rules/roster.ts";
+import { earn, equipMove, learn, newCreature, raiseMove, unequipMove, type Owned } from "../src/rules/roster.ts";
 
-/** A Voltkit at level 7: knows zap, jolt, jet, arc; equips the first three. */
-const leveled = (): readonly Owned[] => earn([newCreature(1, "voltkit", 0)], 1, 40 + 80 + 120 + 160 + 200 + 240);
+/** A Voltkit at level 7 that picked jolt, jet and arc: knows zap, jolt, jet, arc; equips the first three. */
+const leveled = (): readonly Owned[] => {
+  let r: readonly Owned[] = earn([newCreature(1, "voltkit", 0)], 1, 40 + 80 + 120 + 160 + 200 + 240);
+  r = learn(r, 1, "jolt", "");
+  r = learn(r, 1, "jet", "");
+  return learn(r, 1, "arc", "");
+};
 
 test("unequip frees a slot, and a known move can then be equipped into it, at the end of the order", () => {
   let r = leveled();
@@ -34,6 +39,6 @@ test("raise moves an equipped move one place earlier; the first stays first", ()
 
 test("with mastery 3 there is a fourth slot", () => {
   let r: readonly Owned[] = earn([newCreature(1, "voltkit", 3)], 1, 1000);
-  r = equipMove(r, 1, "arc");
+  r = learn(learn(learn(r, 1, "jolt", ""), 1, "jet", ""), 1, "arc", "");
   assert.equal(r[0]!.equipped.length, 4);
 });
