@@ -1,26 +1,26 @@
 {
-  "managed": {
+  "skilled": {
     "lives": [
       10,
       10,
       10,
-      6,
-      4,
-      4,
-      4,
-      4,
-      4,
-      4
+      10,
+      10,
+      10,
+      10,
+      8,
+      8,
+      8
     ],
     "won": true
   },
-  "never touches moves": {
+  "managed": {
     "lives": [
-      10,
-      10,
-      10,
-      6,
-      2,
+      9,
+      9,
+      9,
+      5,
+      3,
       0,
       null,
       null,
@@ -29,30 +29,15 @@
     ],
     "won": false
   },
-  "managed, Glowmire": {
+  "lazy": {
     "lives": [
-      10,
-      10,
-      10,
-      10,
-      6,
-      6,
-      4,
-      4,
-      4,
-      4
-    ],
-    "won": true
-  },
-  "never touches moves, Glowmire": {
-    "lives": [
-      10,
-      10,
-      10,
-      6,
-      2,
-      2,
+      9,
+      9,
+      9,
+      9,
+      5,
       0,
+      null,
       null,
       null,
       null
@@ -73,5 +58,50 @@
       null
     ],
     "won": false
+  },
+  "skilled, riverbend": {
+    "lives": [
+      10,
+      10,
+      10,
+      10,
+      8,
+      7,
+      7,
+      4,
+      4,
+      3
+    ],
+    "won": true
+  },
+  "skilled, gauntlet": {
+    "lives": [
+      10,
+      10,
+      10,
+      10,
+      8,
+      8,
+      8,
+      8,
+      7,
+      3
+    ],
+    "won": true
+  },
+  "skilled, glowmire": {
+    "lives": [
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      10,
+      3
+    ],
+    "won": true
   }
 }

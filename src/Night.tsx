@@ -2,7 +2,6 @@ import { Entity, Layer, Light, Lighting, nearby, Shape, useMutable, useUpdate } 
 
 import type { Placed } from "./battle.ts";
 import { centre, FIELD_HEIGHT, MAPS, type MapId } from "./rules/map.ts";
-import { MOVES } from "./rules/moves.ts";
 import { TYPE_COLOR, type Type } from "./rules/types.ts";
 
 /** A creature as the night sees it: where it stands and the colour of its light. */
@@ -75,7 +74,7 @@ export function Night({ map, creatures, effects }: NightProps) {
           <Light key={`e${e.id}`} radius={12} color="#ffb0a0" intensity={0.45} x={e.x} y={e.y} />
         ))}
         {effects.map((e) => (
-          <Light key={`f${e.id}`} radius={Math.max(18, e.radius * 1.5)} color={TYPE_COLOR[MOVES[e.move].type]} intensity={0.9} x={e.x} y={e.y} />
+          <Light key={`f${e.id}`} radius={Math.max(18, e.radius * 1.5)} color={e.color} intensity={0.9} x={e.x} y={e.y} />
         ))}
         {FIREFLIES.map((f) => (
           <Light
@@ -96,7 +95,7 @@ export function Night({ map, creatures, effects }: NightProps) {
           <Light key={`gm${m.id}`} radius={10} color="#40e0c0" intensity={0.5 + 0.2 * Math.sin(s.t * 1.4 + m.id * 1.9)} x={m.x} y={m.y - 2} />
         ))}
         {effects.map((e) => (
-          <Light key={`gf${e.id}`} radius={Math.max(10, e.radius)} color={TYPE_COLOR[MOVES[e.move].type]} intensity={0.8} x={e.x} y={e.y} />
+          <Light key={`gf${e.id}`} radius={Math.max(10, e.radius)} color={e.color} intensity={0.8} x={e.x} y={e.y} />
         ))}
         {FIREFLIES.map((f) => (
           <Light

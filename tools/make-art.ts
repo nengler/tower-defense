@@ -2,10 +2,12 @@
  * Draws the game's pixel art into `assets/`, in code: no drawn or downloaded images. Run it again after changing a sprite; the
  * files are committed.
  *
- * - `creatures.png`: 12 × 12 frames, two to a row (an idle bob), one row a species in `SPECIES_IDS` order.
+ * - `creatures.png`: 12 × 12 frames, two to a row (an idle bob), one row a species in `SPECIES_IDS` order, then one a form in
+ *   `FORM_IDS` order (each form is its species drawn again, with something added).
  * - `enemies.png`: 12 × 12 frames, two to a row (a walk), one row a kind in `ENEMY_KINDS` order.
- * - `tiles.png`: 16 × 16 tiles in a row: the Meadow's grass, grass with a tuft and path; then Glowmire's grass, grass with reeds,
- *   cobbled path and water; then a lantern and a glow-mushroom (on a clear background, drawn over the grass).
+ * - `tiles.png`: 16 × 16 tiles in a row: grass, grass with a tuft, path, then a terrain tile per type in `TYPES` order (ash, pool,
+ *   pylon, rock, grove); then Glowmire's grass, grass with reeds, cobbled path and water, and a lantern and a glow-mushroom (on a clear
+ *   background, drawn over the grass).
  *
  *   node tools/make-art.ts
  */
@@ -16,7 +18,7 @@ import { fileURLToPath } from "node:url";
 import { encodePng } from "@tsengine/player-node";
 
 import { ENEMY_KINDS } from "../src/rules/enemies.ts";
-import { SPECIES_IDS } from "../src/rules/species.ts";
+import { FORM_IDS, FORMS, SPECIES_IDS } from "../src/rules/species.ts";
 
 const assets = join(dirname(fileURLToPath(import.meta.url)), "../assets");
 
@@ -136,6 +138,78 @@ const CREATURES: Record<(typeof SPECIES_IDS)[number], Draw> = {
   },
 };
 
+/** Each form: its species, with something added that says which way it grew. */
+const FORM_EXTRAS: Record<(typeof FORM_IDS)[number], Draw> = {
+  blazefang: (c, ox, oy, f) => {
+    const t = TONE.ember;
+    // A mane of flame spikes and a fang.
+    for (const [x, y] of [[1, 6], [2, 4], [10, 6], [9, 4], [3, 2 + f], [8, 2 + f]] as const) c.set(ox + x, oy + y, t.light);
+    c.set(ox + 6, oy + 10, WHITE);
+  },
+  kilnback: (c, ox, oy, f) => {
+    const t = TONE.stone;
+    // A kiln of a shell on its back, glowing through the cracks.
+    c.rect(ox + 2, oy + 3 + f, 3, 3, t.dark);
+    c.rect(ox + 3, oy + 4 + f, 1, 1, TONE.ember.light);
+    c.rect(ox + 8, oy + 4 + f, 2, 2, t.main);
+  },
+  tidehound: (c, ox, oy, f) => {
+    const t = TONE.tide;
+    // A fin on its head and a grin.
+    c.rect(ox + 6, oy + 0 + f, 1, 3, t.light);
+    c.set(ox + 5, oy + 1 + f, t.light);
+    c.set(ox + 5, oy + 9 + f, WHITE);
+    c.set(ox + 7, oy + 9 + f, WHITE);
+  },
+  wellspring: (c, ox, oy, f) => {
+    const t = TONE.tide;
+    // A spout on its head, drops falling.
+    c.rect(ox + 6, oy + 0, 1, 2, t.light);
+    c.set(ox + 4, oy + 1 + f, t.light);
+    c.set(ox + 8, oy + 2 - f, t.light);
+  },
+  stormlynx: (c, ox, oy, f) => {
+    const t = TONE.volt;
+    // Tall tufted ears and a crackle.
+    c.rect(ox + 3, oy + 0, 1, 3, t.light);
+    c.rect(ox + 9, oy + 0, 1, 3, t.light);
+    c.set(ox + 11, oy + 5 + f, WHITE);
+    c.set(ox + 10, oy + 6 - f, t.light);
+  },
+  dynamo: (c, ox, oy, f) => {
+    const t = TONE.volt;
+    // A coil turning around it.
+    for (let a = 0; a < 6; a++) {
+      const angle = (a / 6) * Math.PI * 2 + f * 0.5;
+      c.set(ox + 6 + Math.cos(angle) * 5.5, oy + 6.5 + Math.sin(angle) * 5, t.light);
+    }
+  },
+  cragjaw: (c, ox, oy, f) => {
+    // A jaw of a crack, with teeth.
+    c.rect(ox + 3, oy + 9, 6, 1, INK);
+    c.set(ox + 4, oy + 9 - f, WHITE);
+    c.set(ox + 7, oy + 9 - f, WHITE);
+  },
+  bastion: (c, ox, oy, f) => {
+    const t = TONE.stone;
+    // Battlements on top.
+    for (const x of [2, 5, 8]) c.rect(ox + x, oy + 1 + f, 2, 2, t.light);
+  },
+  briarwolf: (c, ox, oy, f) => {
+    const t = TONE.bloom;
+    // Thorns all round.
+    for (const [x, y] of [[1, 7], [11, 7], [2, 4], [10, 4], [6, 11]] as const) c.set(ox + x, oy + y - f * (x % 2), t.dark);
+    c.set(ox + 3, oy + 3, t.light);
+  },
+  elderbloom: (c, ox, oy, f) => {
+    // A flower opening on top.
+    const petal: Rgb = [0xf0, 0xa0, 0xd0];
+    c.set(ox + 6, oy + 1, [0xff, 0xe0, 0x66]);
+    for (const [x, y] of [[5, 1], [7, 1], [6, 0], [6, 2]] as const) c.set(ox + x + (f && x === 6 ? 0 : 0), oy + y, petal);
+    c.set(ox + 4 - f, oy + 3, TONE.bloom.light);
+  },
+};
+
 /** Each enemy kind, likewise; `frame` 1 is the other step of the walk. */
 const ENEMIES: Record<(typeof ENEMY_KINDS)[number], Draw> = {
   crawler: (c, ox, oy, f) => {
@@ -176,6 +250,92 @@ const ENEMIES: Record<(typeof ENEMY_KINDS)[number], Draw> = {
     c.disc(ox + 4.5, oy + 4, 1, t.light);
     c.set(ox + 10, oy + 7, INK);
   },
+  sprinter: (c, ox, oy, f) => {
+    const t = TONE.volt;
+    // A lean dart, streaks behind it.
+    c.disc(ox + 7, oy + 6, 2.5, t.dark);
+    c.disc(ox + 7, oy + 5.8, 2, t.main);
+    c.rect(ox + 1, oy + 5, 3, 1, t.light);
+    c.rect(ox + 2 + f, oy + 7, 2, 1, t.light);
+    c.set(ox + 6 + f, oy + 9, t.dark);
+    c.set(ox + 8 - f, oy + 9, t.dark);
+    c.set(ox + 8, oy + 5, INK);
+  },
+  cleanser: (c, ox, oy, f) => {
+    const t = TONE.tide;
+    // A jelly with a ring of foam, its fringe swaying.
+    c.disc(ox + 6, oy + 5, 3.6, t.dark);
+    c.disc(ox + 6, oy + 4.6, 3, t.light);
+    for (const x of [3, 5, 7, 9]) c.rect(ox + x, oy + 8, 1, 2 + ((x + f) % 2), t.main);
+    c.set(ox + 5, oy + 4, INK);
+    c.set(ox + 7, oy + 4, INK);
+  },
+  brood: (c, ox, oy, f) => {
+    const t = TONE.ember;
+    // A sac full of mites.
+    c.disc(ox + 6, oy + 6, 4.5, t.dark);
+    c.disc(ox + 6, oy + 5.6, 3.9, t.main);
+    for (const [x, y] of [[4, 4], [7, 5], [5, 7], [8, 7]] as const) c.set(ox + x + f * ((x + y) % 2), oy + y, t.light);
+    c.set(ox + 3 + f, oy + 11, t.dark);
+    c.set(ox + 9 - f, oy + 11, t.dark);
+  },
+  burrower: (c, ox, oy, f) => {
+    const t = TONE.stone;
+    // A mole with big claws.
+    c.disc(ox + 6, oy + 6.5, 3.8, t.dark);
+    c.disc(ox + 6, oy + 6, 3.2, t.main);
+    c.rect(ox + 9, oy + 8 - f, 2, 2, t.light);
+    c.rect(ox + 1, oy + 8 + f - 1, 2, 2, t.light);
+    c.set(ox + 8, oy + 5, INK);
+    c.set(ox + 10, oy + 6, [0xf0, 0xa0, 0xa0]);
+  },
+  jammer: (c, ox, oy, f) => {
+    const t = TONE.volt;
+    // A box on legs with an antenna that blinks.
+    c.rect(ox + 3, oy + 4, 6, 5, t.dark);
+    c.rect(ox + 4, oy + 5, 4, 3, t.main);
+    c.rect(ox + 6, oy + 1, 1, 3, INK);
+    c.set(ox + 6, oy + 0, f ? WHITE : t.light);
+    c.set(ox + 4 + f, oy + 10, t.dark);
+    c.set(ox + 7 - f, oy + 10, t.dark);
+    c.set(ox + 7, oy + 6, INK);
+  },
+  shepherd: (c, ox, oy, f) => {
+    const t = TONE.bloom;
+    // A woolly walker with a crook.
+    c.disc(ox + 6, oy + 6, 4, t.light);
+    c.disc(ox + 5, oy + 5, 2, WHITE);
+    c.disc(ox + 9, oy + 5, 1.6, t.dark);
+    c.set(ox + 10, oy + 5, INK);
+    c.rect(ox + 1, oy + 2, 1, 7, t.dark);
+    c.set(ox + 2, oy + 2, t.dark);
+    c.set(ox + 4 + f, oy + 10, t.dark);
+    c.set(ox + 8 - f, oy + 10, t.dark);
+  },
+  mosshorn: (c, ox, oy, f) => {
+    const t = TONE.stone;
+    // A horned beast with moss on its back.
+    c.disc(ox + 6, oy + 6.5, 5, t.dark);
+    c.disc(ox + 6, oy + 6, 4.4, t.main);
+    c.rect(ox + 3, oy + 2, 5, 2, TONE.bloom.main);
+    c.set(ox + 4, oy + 1, TONE.bloom.light);
+    c.rect(ox + 10, oy + 3, 1, 3, WHITE);
+    c.set(ox + 11, oy + 2, WHITE);
+    c.set(ox + 9, oy + 6, INK);
+    c.rect(ox + 3 + f, oy + 10, 2, 2, t.dark);
+    c.rect(ox + 7 - f, oy + 10, 2, 2, t.dark);
+  },
+  prism: (c, ox, oy, f) => {
+    // A crystal with a facet of every type.
+    const order = [TONE.ember, TONE.tide, TONE.volt, TONE.stone, TONE.bloom];
+    for (let y = 0; y < 11; y++) {
+      const w = 5 - Math.abs(5 - y);
+      for (let x = -w; x <= w; x++) c.set(ox + 6 + x, oy + y + 0.5, order[(Math.abs(x) + y + f) % 5]!.main);
+    }
+    c.set(ox + 6, oy + 2, WHITE);
+    c.set(ox + 5, oy + 5, INK);
+    c.set(ox + 7, oy + 5, INK);
+  },
 };
 
 function sheet(name: string, rows: readonly Draw[]): void {
@@ -187,7 +347,7 @@ function sheet(name: string, rows: readonly Draw[]): void {
 }
 
 function tiles(): void {
-  const c = new Canvas(16 * 9, 16);
+  const c = new Canvas(16 * 14, 16);
   const GRASS: Rgb = [0x22, 0x32, 0x28];
   const GRASS_DARK: Rgb = [0x1d, 0x2a, 0x22];
   const TUFT: Rgb = [0x3a, 0x5a, 0x40];
@@ -212,7 +372,38 @@ function tiles(): void {
     [11, 4],
   ] as const)
     c.set(16 + x, y, TUFT);
-
+  // The terrain: grass underneath (the same dark edge), with each type's ground on it.
+  const terrain = (n: number, draw: (x: number, y: number) => Rgb | null) => {
+    for (let y = 0; y < 16; y++)
+      for (let x = 0; x < 16; x++) {
+        const edge = x === 15 || y === 15;
+        c.set(n * 16 + x, y, edge ? GRASS_DARK : (draw(x, y) ?? GRASS));
+      }
+  };
+  // Ash: dark ground with glowing cracks.
+  terrain(3, (x, y) => ((x * 3 + y * 5) % 11 === 0 ? TONE.ember.main : noise(x, y) < 2 ? [0x3a, 0x2a, 0x26] : [0x2e, 0x24, 0x22]));
+  // Pool: water with a light ripple, a grass rim.
+  terrain(4, (x, y) => {
+    if (x < 2 || y < 2 || x > 12 || y > 12) return null;
+    return (x + y * 2) % 7 === 0 ? TONE.tide.light : TONE.tide.dark;
+  });
+  // Pylon: a crystal standing in the grass.
+  terrain(5, (x, y) => {
+    const w = 3 - Math.abs(7 - y) / 2;
+    if (y >= 3 && y <= 12 && Math.abs(x - 7) <= w) return x <= 7 ? TONE.volt.light : TONE.volt.main;
+    return null;
+  });
+  // Rock: a few stones.
+  terrain(6, (x, y) => {
+    const stone = (cx: number, cy: number, r: number) => Math.hypot(x - cx, y - cy) <= r;
+    if (stone(5, 6, 3.2) || stone(10, 10, 2.6) || stone(11, 4, 1.8)) return noise(x, y) < 3 ? TONE.stone.light : TONE.stone.main;
+    return null;
+  });
+  // Grove: lush grass with flowers.
+  terrain(7, (x, y) => {
+    if ((x === 4 && y === 4) || (x === 11 && y === 9) || (x === 6 && y === 11)) return [0xf0, 0xa0, 0xd0];
+    return noise(x, y) < 4 ? TONE.bloom.dark : [0x2a, 0x5a, 0x34];
+  });
   // Glowmire, a bog at night: cooler, bluer grass (the light map darkens it further), cobbles, and water with ripple lines.
   const BOG: Rgb = [0x2a, 0x40, 0x44];
   const BOG_DARK: Rgb = [0x22, 0x34, 0x3a];
@@ -228,14 +419,14 @@ function tiles(): void {
     for (let x = 0; x < 16; x++) {
       const n = noise(x, y);
       const edge = x === 15 || y === 15;
-      c.set(48 + x, y, edge || n === 0 ? BOG_DARK : BOG);
-      c.set(64 + x, y, edge || n === 0 ? BOG_DARK : BOG);
+      c.set(128 + x, y, edge || n === 0 ? BOG_DARK : BOG);
+      c.set(144 + x, y, edge || n === 0 ? BOG_DARK : BOG);
       // Cobbles: a brick bond of 5 × 4 stones, each lit on its top-left.
       const row = Math.floor(y / 4);
       const sx = (x + (row % 2) * 2) % 5;
       const sy = y % 4;
-      c.set(80 + x, y, sx === 4 || sy === 3 ? MORTAR : sx === 0 || sy === 0 ? COBBLE_LIGHT : n === 0 ? MORTAR : COBBLE);
-      c.set(96 + x, y, (x + y * 3) % 11 === 0 ? WATER_DEEP : WATER);
+      c.set(160 + x, y, sx === 4 || sy === 3 ? MORTAR : sx === 0 || sy === 0 ? COBBLE_LIGHT : n === 0 ? MORTAR : COBBLE);
+      c.set(176 + x, y, (x + y * 3) % 11 === 0 ? WATER_DEEP : WATER);
     }
   for (const [x, y, h] of [
     [3, 12, 6],
@@ -244,8 +435,8 @@ function tiles(): void {
     [11, 10, 6],
     [12, 11, 7],
   ] as const) {
-    c.rect(64 + x, y - h, 1, h, REED);
-    c.rect(64 + x, y - h - 2, 1, 2, REED_TIP);
+    c.rect(144 + x, y - h, 1, h, REED);
+    c.rect(144 + x, y - h - 2, 1, 2, REED_TIP);
   }
   for (const [x, y, w] of [
     [2, 3, 5],
@@ -253,45 +444,48 @@ function tiles(): void {
     [4, 10, 6],
     [11, 13, 3],
   ] as const)
-    c.rect(96 + x, y, w, 1, RIPPLE);
+    c.rect(176 + x, y, w, 1, RIPPLE);
 
   // A lantern on a post: its glass is what the light seems to come from.
   const POST: Rgb = [0x3a, 0x2e, 0x2a];
   const BRASS: Rgb = [0x9a, 0x7a, 0x3a];
   const GLASS: Rgb = [0xff, 0xd8, 0x80];
   const FLAME: Rgb = [0xff, 0xf6, 0xd0];
-  c.rect(112 + 7, 7, 2, 8, POST);
-  c.rect(112 + 5, 14, 6, 1, POST);
-  c.rect(112 + 5, 2, 6, 1, BRASS);
-  c.rect(112 + 5, 3, 6, 4, GLASS);
-  c.rect(112 + 5, 3, 1, 4, BRASS);
-  c.rect(112 + 10, 3, 1, 4, BRASS);
-  c.rect(112 + 7, 4, 2, 2, FLAME);
-  c.rect(112 + 6, 7, 4, 1, BRASS);
-  c.set(112 + 7, 1, BRASS);
-  c.set(112 + 8, 1, BRASS);
+  c.rect(192 + 7, 7, 2, 8, POST);
+  c.rect(192 + 5, 14, 6, 1, POST);
+  c.rect(192 + 5, 2, 6, 1, BRASS);
+  c.rect(192 + 5, 3, 6, 4, GLASS);
+  c.rect(192 + 5, 3, 1, 4, BRASS);
+  c.rect(192 + 10, 3, 1, 4, BRASS);
+  c.rect(192 + 7, 4, 2, 2, FLAME);
+  c.rect(192 + 6, 7, 4, 1, BRASS);
+  c.set(192 + 7, 1, BRASS);
+  c.set(192 + 8, 1, BRASS);
 
   // Glow-mushrooms: a tall one and a small one, teal caps with pale spots.
   const STEM: Rgb = [0xc8, 0xd8, 0xd0];
   const CAP: Rgb = [0x3a, 0xd8, 0xc0];
   const CAP_DARK: Rgb = [0x22, 0x90, 0x88];
   const SPOT: Rgb = [0xd0, 0xff, 0xf4];
-  c.rect(128 + 5, 7, 2, 7, STEM);
-  c.disc(128 + 6, 5.5, 3.6, CAP);
-  c.rect(128 + 2, 7, 9, 1, CAP_DARK);
-  c.set(128 + 4, 4, SPOT);
-  c.set(128 + 7, 3, SPOT);
-  c.set(128 + 8, 5, SPOT);
-  c.rect(128 + 11, 11, 1, 3, STEM);
-  c.disc(128 + 11.5, 10.5, 2, CAP);
-  c.set(128 + 11, 10, SPOT);
+  c.rect(208 + 5, 7, 2, 7, STEM);
+  c.disc(208 + 6, 5.5, 3.6, CAP);
+  c.rect(208 + 2, 7, 9, 1, CAP_DARK);
+  c.set(208 + 4, 4, SPOT);
+  c.set(208 + 7, 3, SPOT);
+  c.set(208 + 8, 5, SPOT);
+  c.rect(208 + 11, 11, 1, 3, STEM);
+  c.disc(208 + 11.5, 10.5, 2, CAP);
+  c.set(208 + 11, 10, SPOT);
   c.write("tiles.png");
 }
 
-sheet(
-  "creatures.png",
-  SPECIES_IDS.map((id) => CREATURES[id])
-);
+sheet("creatures.png", [
+  ...SPECIES_IDS.map((id) => CREATURES[id]),
+  ...FORM_IDS.map((id): Draw => (c, ox, oy, f) => {
+    CREATURES[FORMS[id].species](c, ox, oy, f);
+    FORM_EXTRAS[id](c, ox, oy, f);
+  }),
+]);
 sheet(
   "enemies.png",
   ENEMY_KINDS.map((k) => ENEMIES[k])

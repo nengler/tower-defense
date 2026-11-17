@@ -2,11 +2,15 @@ import { AnimatedSprite, Collider, Entity, nearby, send, Shape, useMutable, useU
 
 import { PLAIN_BLAST, type Aura, type Effect } from "./battle.ts";
 import { CREATURE_ANIMATIONS, pipFill, withCooldown } from "./rules/draw.ts";
+import { MARKS } from "./rules/marks.ts";
 import { comboOf, MOVES, type MoveId } from "./rules/moves.ts";
-import { scaled } from "./rules/scaled.ts";
-import { SPECIES, statsAt, type SpeciesId } from "./rules/species.ts";
-import { anyWithin, pickTarget } from "./rules/targeting.ts";
+import { scaleDamage, scaled } from "./rules/scaled.ts";
+import { SPECIES, statsOf, type FormId, type SpeciesId } from "./rules/species.ts";
+import { anyWithin, jammedAt, pickTarget } from "./rules/targeting.ts";
 import { TYPE_COLOR } from "./rules/types.ts";
+
+/** Seconds a creature put on a tile (or moved to one) during a wave waits before it acts: moving is free, but not instant. */
+export const SETTLE = 1.5;
 
 /** How far around itself a creature looks for enemies: more than any move reaches. */
 const LOOK = 120;
@@ -17,6 +21,10 @@ interface CreatureProps {
   id: number;
   species: SpeciesId;
   level: number;
+  /** The form it evolved into, or "". */
+  form: FormId | "";
+  /** What its tile's terrain adds to each stat (0 off its own type's terrain). */
+  terrain: number;
   /** The moves it uses, in the order it tries them. */
   equipped: readonly MoveId[];
   /** Where it stands (its tile's middle). */
@@ -32,15 +40,16 @@ interface CreatureProps {
  * placed), so swapping is never a way to skip one. It uses one move at a time: when it is not busy, it starts the first ready move,
  * in equip order, that has a use (an enemy in reach; a buff always has one), and is busy for that move's animation, at the end of
  * which the move lands: it is sent to the enemies (or, for a buff, the allies) it lands on, and shown (`onUse`). A haste on it
- * (from a buff, its own or an ally's) makes its animations and cooldowns run faster, and an ally's haste earns that ally a share of the
- * XP for what it deals meanwhile (`helper` on what it sends).
+ * (from a buff, its own or an ally's) makes its animations and cooldowns run faster.
  *
- * It draws its species' sprite (an idle bob), a ring while it is using a move, and under it one pip per equipped move that fills as the
- * move's cooldown runs.
+ * Put on a tile, or moved to another, it settles for `SETTLE` seconds before it starts a move. Near a jammer its cooldowns stop.
+ *
+ * It draws its species' (or form's) sprite (an idle bob), a ring while it is using a move, and under it one pip per equipped move
+ * that fills as the move's cooldown runs; grey dots while it settles, a yellow bar while jammed.
  */
-export function Creature({ id, species, level, equipped, x, y, selected, onUse }: CreatureProps) {
+export function Creature({ id, species, level, form, terrain, equipped, x, y, selected, onUse }: CreatureProps) {
   const type = SPECIES[species].type;
-  const stats = statsAt(species, level);
+  const stats = statsOf(species, level, form, terrain);
   const s = useMutable({
     /** Seconds left on each equipped move's cooldown. A move that is not in it has just been equipped. */
     cooldowns: {} as Readonly<Partial<Record<MoveId, number>>>,
@@ -52,13 +61,19 @@ export function Creature({ id, species, level, equipped, x, y, selected, onUse }
     hasteFor: 0,
     /** The creature whose haste is on it (itself, for its own buff): it earns a share of the XP this one earns while hasted. */
     hasteFrom: -1,
+    /** Where it stood last step, and the seconds left of its settling (placed or moved). */
+    atX: x,
+    atY: y,
+    settle: SETTLE,
+    jammed: false,
   });
   /** The move as this creature uses it. */
   const use = (move: MoveId) => scaled(move, stats);
   /** The enemies around it, as their colliders describe them. */
   const enemies = () => nearby("enemy", x, y, LOOK).map((e) => e.data);
-  /** A haste landing on it: the stronger of this and one still running, for the longer time. The newest buffer gets the credit. */
+  /** A haste landing on it: the stronger of this and one still running, for the longer time. */
   const hasten = (a: Aura) => {
+    // The newest buffer gets the credit.
     s.hasteFrom = a.from;
     s.haste = Math.max(s.hasteFor > 0 ? s.haste : 0, a.haste);
     s.hasteFor = Math.max(s.hasteFor, a.hasteFor);
@@ -85,7 +100,7 @@ export function Creature({ id, species, level, equipped, x, y, selected, onUse }
       // `nearby` leaves out its own collider: it takes its own buff here.
       hasten(aura);
       for (const ally of nearby("ally", x, y, u.radius)) if (Math.hypot(ally.data.x - x, ally.data.y - y) <= u.radius) send("ally", ally, aura);
-      onUse({ move, fromX: x, fromY: y, x, y, radius: u.radius });
+      onUse({ move, color: TYPE_COLOR[m.type], from: id, userType: type, mark: "", markBurn: 0, fromX: x, fromY: y, x, y, radius: u.radius });
       return;
     }
     const seen = nearby("enemy", x, y, LOOK);
@@ -96,6 +111,7 @@ export function Creature({ id, species, level, equipped, x, y, selected, onUse }
     const blast = {
       ...PLAIN_BLAST,
       from: id,
+      // An ally's haste on it earns that ally a share of the XP for what this deals.
       helper: s.hasteFor > 0 && s.hasteFrom !== id ? s.hasteFrom : -1,
       moveType: m.type,
       userType: type,
@@ -116,12 +132,23 @@ export function Creature({ id, species, level, equipped, x, y, selected, onUse }
     } else {
       for (const e of nearby("enemy", at.x, at.y, radius)) if (Math.hypot(e.data.x - at.x, e.data.y - at.y) <= radius) send("enemy", e, blast);
     }
-    onUse({ move, fromX: x, fromY: y, x: at.x, y: at.y, radius });
+    const mark = m.effects.mark ?? "";
+    const markBurn = mark === "" ? 0 : scaleDamage(MARKS[mark].burn, stats);
+    onUse({ move, color: TYPE_COLOR[m.type], from: id, userType: type, mark, markBurn, fromX: x, fromY: y, x: at.x, y: at.y, radius });
   };
 
   useUpdate((dt) => {
-    // Hasted, time runs faster for its moves.
-    const rate = s.hasteFor > 0 ? 1 / (1 - s.haste) : 1;
+    // Moved to another tile: it settles again, and a move it was in the middle of is lost.
+    if (x !== s.atX || y !== s.atY) {
+      s.atX = x;
+      s.atY = y;
+      s.settle = SETTLE;
+      s.busy = "";
+    }
+    if (s.settle > 0) s.settle = Math.max(0, s.settle - dt);
+    // Hasted, time runs faster for its moves; jammed, its cooldowns stand still.
+    s.jammed = jammedAt(x, y, nearby("enemy", x, y, LOOK).map((e) => e.data));
+    const rate = s.jammed ? 0 : s.hasteFor > 0 ? 1 / (1 - s.haste) : 1;
     if (s.hasteFor > 0) s.hasteFor = Math.max(0, s.hasteFor - dt);
 
     // A move just equipped starts on its full cooldown; one no longer equipped forgets it. The others cool down.
@@ -140,6 +167,7 @@ export function Creature({ id, species, level, equipped, x, y, selected, onUse }
       if (equipped.includes(done)) land(done);
       return;
     }
+    if (s.settle > 0) return;
     for (const move of equipped) {
       if ((s.cooldowns[move] ?? 1) > 0 || !hasUse(move)) continue;
       s.busy = move;
@@ -169,11 +197,20 @@ export function Creature({ id, species, level, equipped, x, y, selected, onUse }
         frameWidth={12}
         frameHeight={12}
         animations={CREATURE_ANIMATIONS}
-        animation={species}
+        animation={form === "" ? species : form}
         originX={6}
         originY={7}
       />
       {s.hasteFor > 0 && <Shape kind="rect" width={2} height={2} x={SIZE / 2 - 1} y={-SIZE / 2 - 2} color={TYPE_COLOR.bloom} />}
+      {s.settle > 0 && (
+        <Entity y={-SIZE / 2 - 3}>
+          <Shape kind="rect" width={1} height={1} x={-2} color="#a7b0c8" />
+          <Shape kind="rect" width={1} height={1} x={0} color={s.settle < 1 ? "#a7b0c8" : "#4a5068"} />
+          <Shape kind="rect" width={1} height={1} x={2} color={s.settle < 0.5 ? "#a7b0c8" : "#4a5068"} />
+        </Entity>
+      )}
+      {s.jammed && <Shape kind="rect" width={SIZE} height={1} x={-SIZE / 2} y={-SIZE / 2 - 4} color={TYPE_COLOR.volt} />}
+      {terrain > 0 && <Shape kind="rect" width={2} height={2} x={-SIZE / 2 - 1} y={-SIZE / 2 - 2} color={TYPE_COLOR[type]} />}
       {equipped.map((move, i) => (
         <Entity key={move} x={-SIZE / 2 + i * 3} y={SIZE / 2 + 1}>
           <Shape kind="rect" width={2} height={3} color="#00000080" />

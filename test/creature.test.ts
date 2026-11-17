@@ -4,7 +4,7 @@ import { describe, it, mock } from "node:test";
 import { render } from "@tsengine/testing";
 
 import type { Aura, Blast, Effect } from "../src/battle.ts";
-import { Creature } from "../generated/Creature.ts";
+import { Creature, SETTLE } from "../generated/Creature.ts";
 import type { MoveId } from "../src/rules/moves.ts";
 import { scaled } from "../src/rules/scaled.ts";
 import { statsAt } from "../src/rules/species.ts";
@@ -15,11 +15,25 @@ const Y = 60;
 
 /**
  * A creature alone at (X, Y), rendered with collisions, and ways to put an enemy or another ally near it (a collider saying what it
- * is, which records what the creature sends it).
+ * is, which records what the creature sends it). It is placed with nothing equipped and left to settle, then given `equipped`: so
+ * its moves start their cooldowns now, as if just equipped (`settled: false` gives it its moves at once, still settling).
  */
-function creature(equipped: readonly MoveId[], species: "emberling" | "puddlepup" | "voltkit" | "sproutling" = "voltkit", level = 1) {
+function creature(
+  equipped: readonly MoveId[],
+  species: "emberling" | "puddlepup" | "voltkit" | "sproutling" = "voltkit",
+  level = 1,
+  { settled = true, terrain = 0 }: { settled?: boolean; terrain?: number } = {}
+) {
   const onUse = mock.fn((_e: Effect) => {});
-  const t = render(Creature, { id: 3, species, level, equipped, x: X, y: Y, selected: false, onUse }, { collisions: true });
+  const t = render(
+    Creature,
+    { id: 3, species, level, form: "", terrain, equipped: settled ? [] : equipped, x: X, y: Y, selected: false, onUse },
+    { collisions: true }
+  );
+  if (settled) {
+    t.step(Math.ceil(SETTLE * STEPS_A_SECOND) + 1);
+    t.setProps({ equipped });
+  }
   /** What was sent to each placed collider, by its id. */
   const sent = new Map<number, unknown[]>();
   const record = (id: number) => {
@@ -27,13 +41,24 @@ function creature(equipped: readonly MoveId[], species: "emberling" | "puddlepup
     return (value: unknown) => sent.get(id)!.push(value);
   };
   const near = (id: number, dx: number, dist = 50, hp = 10) =>
-    t.place({ tag: "enemy", data: { id, dist, x: X + dx, y: Y, hp }, x: X + dx - 4, y: Y - 4, width: 8, height: 8, onReceive: record(id) });
+    t.place({
+      tag: "enemy",
+      data: { id, dist, x: X + dx, y: Y, hp, hidden: false, jam: 0 },
+      x: X + dx - 4,
+      y: Y - 4,
+      width: 8,
+      height: 8,
+      onReceive: record(id),
+    });
+  /** A jammer near it. */
+  const jammer = (id: number, dx: number, jam: number) =>
+    t.place({ tag: "enemy", data: { id, dist: 0, x: X + dx, y: Y, hp: 10, hidden: false, jam }, x: X + dx - 4, y: Y - 4, width: 8, height: 8 });
   const ally = (id: number, dx: number) =>
     t.place({ tag: "ally", data: { id, x: X + dx, y: Y }, x: X + dx - 5, y: Y - 5, width: 10, height: 10, onReceive: record(id) });
   const used = () => onUse.mock.calls.map((c) => c.arguments[0]!);
   const blasts = (id: number) => (sent.get(id) ?? []) as Blast[];
   const auras = (id: number) => (sent.get(id) ?? []) as Aura[];
-  return { t, onUse, near, ally, used, blasts, auras };
+  return { t, onUse, near, ally, jammer, used, blasts, auras };
 }
 
 /** Send the creature (at X, Y) an aura, as an ally's buff would. */
@@ -159,6 +184,39 @@ describe("a creature", () => {
     assert.equal(blasts(4).length, 1);
     assert.equal(blasts(2)[0]!.slow, 0.4);
     assert.equal(blasts(2)[0]!.soak, 4);
+  });
+
+  it("put on a tile it settles before its first move, and moved to another it settles again", () => {
+    const { t, near, used } = creature(["zap"], "voltkit", 1, { settled: false });
+    near(1, 20);
+    t.step(Math.floor(SETTLE * STEPS_A_SECOND) - 2);
+    assert.equal(fields(t).busy, "", "still settling, though Zap is ready");
+    t.step(4);
+    assert.equal(fields(t).busy, "zap");
+    t.step(60);
+    const before = used().length;
+    t.setProps({ x: X + 4 });
+    t.step(Math.floor(SETTLE * STEPS_A_SECOND) - 2);
+    assert.equal(used().length, before, "moved: nothing used while it settles again");
+  });
+
+  it("near a jammer its cooldowns stand still", () => {
+    const { t, jammer } = creature(["zap"]);
+    jammer(9, 20, 30);
+    const zap = scaled("zap", statsAt("voltkit", 1));
+    t.step(30);
+    assert.ok(fields(t).cooldowns.zap! > zap.cooldown - 0.02, `cooldown ${fields(t).cooldowns.zap}`);
+    assert.equal((t.state().s as { jammed: boolean }).jammed, true);
+  });
+
+  it("on its own type's terrain every stat is higher: its moves hit harder", () => {
+    const plain = creature(["zap"]);
+    const attuned = creature(["zap"], "voltkit", 1, { terrain: 2 });
+    for (const c of [plain, attuned]) {
+      c.near(1, 20);
+      c.t.step(3 * STEPS_A_SECOND);
+    }
+    assert.ok(attuned.blasts(1)[0]!.damage > plain.blasts(1)[0]!.damage);
   });
 
   it("a haste makes its cooldowns run faster while it lasts", () => {

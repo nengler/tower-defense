@@ -1,45 +1,36 @@
 /**
- * Script time of each step of a whole managed run (the balance tool's winning strategy) in the game itself: the root, every
+ * Script time of each step of a whole skilled run (the balance tool's first strategy) in the game itself: the root, every
  * screen, the draw list, collisions, against a recording backend under Node. It prints the mean, the 99th percentile and the
  * slowest step of each wave, and the most draw records a frame of it had. Drawing in libtse is not in it.
  *
- *   node tools/frame-time.ts [--map glowmire]
+ *   node tools/frame-time.ts ["skilled, glowmire"]   (another strategy, by name)
  */
 import { createPlayer, parseInputScript, RecordingBackend } from "@tsengine/player";
 import { findComponent } from "@tsengine/testing";
 
 import { bindings, gameConfig } from "../game.ts";
 import { useGame } from "../src/GameState.ts";
-import type { MapId } from "../src/rules/map.ts";
 import { WAVE_COUNT } from "../src/rules/waves.ts";
-import { manage, STRATEGIES } from "./balance.ts";
+import { answer, manage, STRATEGIES, takeAndPlace } from "./balance.ts";
 
-const mapArg = process.argv.indexOf("--map");
-const map = (mapArg >= 0 ? process.argv[mapArg + 1] : "meadow") as MapId;
-// The managed strategy of that map.
-const strategy = STRATEGIES.find((s) => s.manage && (s.map ?? "meadow") === map) ?? STRATEGIES[0]!;
+const strategy = STRATEGIES.find((s) => s.name === process.argv[2]) ?? STRATEGIES[0]!;
 // Only the latest frame is kept, and it is decoded (for its record count) once a second: decoding every frame costs more than the game.
 const backend = new RecordingBackend({ keepFrames: 1 });
 const player = createPlayer(backend, { ...gameConfig, warn: () => {} });
-const { start, takeOffer, tapTile } = useGame.actions();
+const { start } = useGame.actions();
 const space = parseInputScript("Space", { bindings })[0]!;
 
 player.step();
-start(map);
+useGame.setState({ map: strategy.map, seed: strategy.seed });
+start();
 player.step();
 const battle = findComponent("Play", player.world.root) as unknown as { $s_active: boolean; $s_lives: number };
 
 const rows: Record<string, unknown>[] = [];
 let joined = 0;
 for (let wave = 1; wave <= WAVE_COUNT && useGame.getState().screen === "play"; wave++) {
-  const offer = useGame.getState().offer;
-  if (offer.length > 0) {
-    const want = strategy.picks[joined] ?? offer[0]!;
-    takeOffer(offer.includes(want) ? want : offer[0]!);
-    const spot = strategy.spots[joined];
-    if (spot !== undefined) tapTile(spot[0], spot[1]);
-    joined += 1;
-  }
+  if (takeAndPlace(strategy, joined)) joined += 1;
+  answer(strategy);
   player.step();
   backend.queueInput(space);
   player.step();
@@ -48,6 +39,7 @@ for (let wave = 1; wave <= WAVE_COUNT && useGame.getState().screen === "play"; w
   let records = 0;
   for (let step = 0; step < 60 * 180 && useGame.getState().screen === "play" && battle.$s_active; step++) {
     if (step % 60 === 0) {
+      answer(strategy);
       useGame.setState({ roster: manage(useGame.getState().roster) });
       records = Math.max(records, backend.lastFrame.records.length);
     }
