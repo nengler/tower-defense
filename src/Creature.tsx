@@ -10,7 +10,7 @@ import { TYPE_COLOR } from "./rules/types.ts";
 
 /** How far around itself a creature looks for enemies: more than any move reaches. */
 const LOOK = 120;
-/** Pixels of the box drawn for a creature. */
+/** Pixels across a creature: its collider, and what its selection frame, move ring and cooldown pips are placed around. */
 const SIZE = 10;
 
 interface CreatureProps {

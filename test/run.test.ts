@@ -26,6 +26,7 @@ function play(script: string) {
       xp: roster.map((c) => c.xp + c.level * 1000),
       species: roster.map((c) => c.species),
       placed: roster.filter((c) => c.col >= 0).length,
+      at: roster.map((c) => `${c.col},${c.row}`),
       offer: offer.length,
     };
   });
@@ -64,4 +65,13 @@ test("a wave sounds like one: its horn, hits landing, enemies dying, and a level
   assert.ok(sfx.plays("hit") - before.hit > 5);
   assert.ok(sfx.plays("die") - before.die >= 3);
   assert.ok(sfx.plays("level") - before.level >= 1);
+});
+
+test("a press on the card's own background stays on the card: the creature is not moved to the tile under it", () => {
+  // The creature goes on (3, 2) and stays selected, so its card covers the right of the field. (15, 6) is a free tile under the
+  // card's empty middle, and (6, 4) a free tile the card does not cover.
+  const { states } = play(`_*2, Enter, _*3, Enter, _*2, ${tile(3, 2)}, _*2, ${tile(15, 6)}, _*2`);
+  assert.deepEqual(states[states.length - 1]!.at, ["3,2"], "the card took the press");
+  const moved = play(`_*2, Enter, _*3, Enter, _*2, ${tile(3, 2)}, _*2, ${tile(6, 4)}, _*2`);
+  assert.deepEqual(moved.states[moved.states.length - 1]!.at, ["6,4"], "a tile beside the card still takes one");
 });

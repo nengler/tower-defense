@@ -21,6 +21,9 @@ interface CardProps {
  * equipped moves are listed in the order it tries them, each with `UP` (try it earlier) and `x` (unequip); the moves it knows but has
  * not equipped follow, and pressing one equips it while a slot is free. All of it works mid-wave. `BENCH` takes it off the field,
  * `CLOSE` (or Escape) deselects it.
+ *
+ * The card takes every press that lands on it (`onPress`), its buttons first as they are drawn over it: without that, a press on a gap
+ * between two rows went through to the tile under the card and moved the creature there.
  */
 export function Card({ creature }: CardProps) {
   const { equip, unequip, raise, benchSelected, deselect } = useGame.actions();
@@ -46,6 +49,7 @@ export function Card({ creature }: CardProps) {
       background="#141824f0"
       borderWidth={1}
       borderColor={TYPE_COLOR[info.type]}
+      onPress={() => {}}
     >
       <Flex direction="row" justifyContent="space-between" width="grow">
         <Text color={TYPE_COLOR[info.type]}>{info.name}</Text>
