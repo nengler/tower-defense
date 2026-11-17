@@ -38,7 +38,7 @@ export function Card({ creature }: CardProps) {
       width="grow"
       height="grow"
       direction="column"
-      gap={3}
+      gap={2}
       padding={4}
       background="#1a1f2e"
       borderWidth={1}

@@ -183,7 +183,8 @@ on a day plays the same run. It unlocks nothing.
 
 ## Screen
 
-480 × 270 (16:9; 4× fills a 1080p screen). The field is a 20 × 14 grid of 16 px tiles (320 × 224) in the top left, with the path drawn
+480 × 270 (16:9; 4× fills a 1080p screen). Text is in the game's own 5 × 7 pixel font (`assets/font.png`, drawn by
+`tools/make-art.ts`), 8 px a line, with lower case and descenders. The field is a 20 × 14 grid of 16 px tiles (320 × 224) in the top left, with the path drawn
 on it. Under each creature on the field, one pip per equipped move fills as its cooldown runs; dots over it while it settles, a
 yellow bar while jammed.
 

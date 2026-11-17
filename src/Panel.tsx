@@ -65,11 +65,12 @@ export function Panel({ wave, active }: PanelProps) {
       {chosen !== undefined && <Card creature={chosen} />}
       {chosen === undefined && (
         <Flex direction="column" gap={3} width="grow" height="grow" padding={4} background="#1a1f2e">
-          <Text color="#6a7088">CLICK A CREATURE OR CHIP</Text>
-          <Text color="#6a7088">TO SEE ITS CARD.</Text>
-          <Text color="#6a7088">1-9 SELECT, BACKSPACE BENCHES</Text>
-          <Text color="#6a7088">N: NEW MOVE  F: SPEED</Text>
-          <Text color="#6a7088">E: ELITE  ESC: PAUSE</Text>
+          <Text color="#6a7088">Click a creature or</Text>
+          <Text color="#6a7088">its chip for its card.</Text>
+          <Text color="#6a7088">1-9: select</Text>
+          <Text color="#6a7088">Backspace: bench</Text>
+          <Text color="#6a7088">N: new move  F: speed</Text>
+          <Text color="#6a7088">E: elite  Esc: pause</Text>
         </Flex>
       )}
     </Flex>
