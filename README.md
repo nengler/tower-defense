@@ -15,6 +15,17 @@ npm run dev      # play in a window with hot reload
 npm run package  # dist/tower-defense/: the packaged game
 ```
 
+## Tools
+
+```sh
+node tools/balance.ts       # whole runs played headless by fixed strategies: lives left after each wave (--write updates the test's table)
+node tools/frame-time.ts    # script time of each step of a whole run, wave by wave: the mean, the 99th percentile and the slowest
+node tools/make-art.ts      # draws assets/*.png
+node tools/make-sounds.ts   # writes assets/*.wav
+```
+
+The first two need `npm run build` first: they import the compiled components in `generated/`.
+
 ## Updating the engine
 
 The `@tsengine/*` dependencies point at one engine release, e.g. `.../releases/download/v0.3.0/tsengine-runtime-0.3.0.tgz`. To move to

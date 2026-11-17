@@ -140,7 +140,7 @@ const ENEMIES: Record<(typeof ENEMY_KINDS)[number], Draw> = {
   crawler: (c, ox, oy, f) => {
     const t = TONE.bloom;
     // A beetle with six legs taking turns.
-    for (const x of [3, 6, 9]) c.set(ox + x + (f ? 1 : -1) * (x === 6 ? -1 : 1) * 0, oy + 10 - ((x / 3 + f) % 2), t.dark);
+    for (const x of [3, 6, 9]) c.set(ox + x, oy + 10 - ((x / 3 + f) % 2), t.dark);
     c.disc(ox + 6, oy + 6.5, 4, t.dark);
     c.disc(ox + 6, oy + 6, 3.4, t.main);
     c.rect(ox + 6, oy + 3, 1, 6, t.dark);

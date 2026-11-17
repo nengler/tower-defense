@@ -61,7 +61,7 @@ export function bestLoadout(c: Owned): MoveId[] {
 }
 
 /** Equip a creature's best loadout if it is not already what it has (so a cooldown is only reset when something changes). */
-function manage(roster: readonly Owned[]): readonly Owned[] {
+export function manage(roster: readonly Owned[]): readonly Owned[] {
   let r = roster;
   for (const c of roster) {
     const best = bestLoadout(c);

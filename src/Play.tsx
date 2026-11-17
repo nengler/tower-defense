@@ -28,8 +28,10 @@ export const START_LIVES = 10;
  * The battle. It keeps what the whole battle shares: the lives, the wave and its spawner, and the lists of enemies and of moves
  * landing, which it draws as components that each keep their own state; the creatures on the field come from the roster. An enemy
  * reports up when it dies, gets through or takes damage (its attacker's XP); a creature when a move lands. Pressing a tile selects
- * the creature on it or puts the selected one there; Backspace benches the selected one, and 1 to 9 select a creature by its place in the bar. The bar's button (or Space) starts the next
- * wave. The selected creature's card shows over the field (its moves can be changed at any time); Escape closes it, or pauses. Before waves 1, 3 and 5 a milestone offers a new creature, and no wave starts until one is taken.
+ * the creature on it or puts the selected one there; Backspace benches the selected one, and 1 to 9 select a creature by its place
+ * in the bar. The bar's button (or Space) starts the next wave. The selected creature's card shows over the field (its moves can
+ * be changed at any time); Escape closes it, or pauses. Before some waves (`MILESTONES`) a milestone offers a new creature, and no
+ * wave starts until one is taken.
  */
 export function Play() {
   const paused = useGame((s) => s.paused);
