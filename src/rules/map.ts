@@ -221,19 +221,16 @@ export const MAPS: Readonly<Record<MapId, GameMap>> = {
   ),
 };
 
-/**
- * The map with this id. The game state keeps the run's map as a plain string (what a component reads of the state is typed by its
- * first value), so lookups go through here; an id that is no map's is the first map.
- */
-export function mapOf(id: string): GameMap {
-  return MAPS[id as MapId] ?? MAPS.meadow;
+/** The map with this id. */
+export function mapOf(id: MapId): GameMap {
+  return MAPS[id];
 }
 
-export function isPath(map: string, col: number, row: number): boolean {
+export function isPath(map: MapId, col: number, row: number): boolean {
   return mapOf(map).pathTiles.has(tileKey(col, row));
 }
 
 /** The type a tile attunes, or null for plain grass and path. */
-export function terrainAt(map: string, col: number, row: number): Type | null {
+export function terrainAt(map: MapId, col: number, row: number): Type | null {
   return mapOf(map).terrain.get(tileKey(col, row)) ?? null;
 }
