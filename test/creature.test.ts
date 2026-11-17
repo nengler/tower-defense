@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it, mock } from "node:test";
 
-import { Collider } from "@tsengine/runtime";
 import { render } from "@tsengine/testing";
 
 import type { Aura, Blast, Effect } from "../src/battle.ts";
@@ -23,25 +22,23 @@ function creature(equipped: readonly MoveId[], species: "emberling" | "puddlepup
   const t = render(Creature, { id: 3, species, level, equipped, x: X, y: Y, selected: false, onUse }, { collisions: true });
   /** What was sent to each placed collider, by its id. */
   const sent = new Map<number, unknown[]>();
-  const listen = (id: number, collider: Collider) => {
+  const record = (id: number) => {
     sent.set(id, []);
-    collider.onReceive = (value: unknown) => sent.get(id)!.push(value);
+    return (value: unknown) => sent.get(id)!.push(value);
   };
   const near = (id: number, dx: number, dist = 50, hp = 10) =>
-    listen(id, t.place({ tag: "enemy", data: { id, dist, x: X + dx, y: Y, hp }, x: X + dx - 4, y: Y - 4, width: 8, height: 8 }));
+    t.place({ tag: "enemy", data: { id, dist, x: X + dx, y: Y, hp }, x: X + dx - 4, y: Y - 4, width: 8, height: 8, onReceive: record(id) });
   const ally = (id: number, dx: number) =>
-    listen(id, t.place({ tag: "ally", data: { id, x: X + dx, y: Y }, x: X + dx - 5, y: Y - 5, width: 10, height: 10 }));
+    t.place({ tag: "ally", data: { id, x: X + dx, y: Y }, x: X + dx - 5, y: Y - 5, width: 10, height: 10, onReceive: record(id) });
   const used = () => onUse.mock.calls.map((c) => c.arguments[0]!);
   const blasts = (id: number) => (sent.get(id) ?? []) as Blast[];
   const auras = (id: number) => (sent.get(id) ?? []) as Aura[];
   return { t, onUse, near, ally, used, blasts, auras };
 }
 
-/** Hand a rendered component's collider a value, as `send` delivers it. */
-function receive(t: ReturnType<typeof creature>["t"], value: unknown) {
-  const collider = t.find(Collider)!;
-  (collider.onReceive as (v: unknown) => void)(value);
-  t.world.flush();
+/** Send the creature (at X, Y) an aura, as an ally's buff would. */
+function receive(t: ReturnType<typeof creature>["t"], value: Aura) {
+  t.send("ally", { x: X, y: Y, radius: 1 }, value);
 }
 
 const fields = (t: { state(): Record<string, unknown> }) => t.state().s as { busy: string; left: number; cooldowns: Record<string, number> };

@@ -2,11 +2,6 @@ import type { MoveId } from "./moves.ts";
 import { scaled } from "./scaled.ts";
 import type { Stats } from "./species.ts";
 
-/** A share as a size `<Flex width>` takes: `percent(40)` is `"40%"` (a template string alone types as `string`). */
-export function percent(n: number): `${number}%` {
-  return `${n}%`;
-}
-
 /** How full a move's cooldown pip is: 0 just used (or just equipped), 1 ready. */
 export function pipFill(cooldowns: Readonly<Partial<Record<MoveId, number>>>, move: MoveId, stats: Stats): number {
   const full = scaled(move, stats).cooldown;

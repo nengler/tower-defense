@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it, mock } from "node:test";
 
-import { Collider } from "@tsengine/runtime";
 import { render } from "@tsengine/testing";
 
 import { PLAIN_BLAST, type Blast } from "../src/battle.ts";
@@ -31,8 +30,7 @@ const blast = (over: Partial<Blast> = {}): Blast => ({ ...PLAIN_BLAST, moveType:
 
 /** Send a blast to the enemy, delivered as `send` delivers it (which enemies a move lands on is the creature's choice). */
 function hit(t: ReturnType<typeof enemy>["t"], b: Blast) {
-  (t.find(Collider)!.onReceive as (v: Blast) => void)(b);
-  t.world.flush();
+  t.send("enemy", { x: 0, y: 0, radius: 10_000 }, b);
 }
 
 const near = (a: number, b: number) => Math.abs(a - b) < 1e-6;
