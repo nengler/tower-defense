@@ -1,6 +1,7 @@
-import { Flex, Shape, Text } from "@tsengine/runtime/jsx";
+import { Flex, Text } from "@tsengine/runtime/jsx";
 
 import { useGame } from "./GameState.ts";
+import { percent } from "./rules/draw.ts";
 import { FIELD_HEIGHT } from "./rules/map.ts";
 import { MOVES } from "./rules/moves.ts";
 import { MAX_LEVEL, slotsFor, xpToNext } from "./rules/progress.ts";
@@ -51,7 +52,7 @@ export function Card({ creature }: CardProps) {
         <Text>{`LV${creature.level}`}</Text>
       </Flex>
       <Flex width="grow" height={2} background="#2a2f40">
-        <Shape kind="rect" width={maxed ? 114 : (114 * creature.xp) / xpToNext(creature.level)} height={2} color="#a7b0c8" />
+        <Flex width={percent(maxed ? 100 : (100 * creature.xp) / xpToNext(creature.level))} height={2} background="#a7b0c8" />
       </Flex>
       <Text color="#a7b0c8">{`ATK ${stats.atk} SPD ${stats.spd}`}</Text>
       <Text color="#a7b0c8">{`RNG ${stats.rng} CD ${stats.cd}`}</Text>

@@ -24,8 +24,8 @@ export function Popup({ id, x, y, amount, combo, onDone }: PopupProps) {
     s.t += dt;
   });
   return (
-    <Entity x={x - 6} y={y - 12 - s.t * 16}>
-      <Text color={combo ? "#ffe066" : "#ffffff"} shadow="#000000">
+    <Entity x={x} y={y - 12 - s.t * 16}>
+      <Text align="center" color={combo ? "#ffe066" : "#ffffff"} shadow="#000000">
         {`${Math.max(1, Math.round(amount))}`}
       </Text>
     </Entity>

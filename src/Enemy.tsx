@@ -1,4 +1,4 @@
-import { after, AnimatedSprite, cancelTimers, Collider, Entity, Shape, useMutable, useUpdate } from "@tsengine/runtime/jsx";
+import { after, AnimatedSprite, cancelTimer, Collider, Entity, Shape, useMutable, useUpdate } from "@tsengine/runtime/jsx";
 
 import { afterArmor, ENEMIES, type EnemyKind } from "./rules/enemies.ts";
 import { ENEMY_ANIMATIONS } from "./rules/draw.ts";
@@ -39,8 +39,9 @@ export function Enemy({ id, kind, maxHp, onKilled, onLeaked, onDamaged, onHit }:
     burnFor: 0,
     burnFrom: -1,
     soak: 0,
-    /** White for a moment after a hit: only for the eye, so a timer turns it off. */
+    /** White for a moment after a hit: only for the eye, so a timer turns it off (that timer's id, 0 for none). */
     flash: false,
+    flashTimer: 0,
   });
   const at = pathAt(PATH, s.dist);
   const half = info.size / 2;
@@ -125,9 +126,9 @@ export function Enemy({ id, kind, maxHp, onKilled, onLeaked, onDamaged, onHit }:
             const amount = afterArmor(kind, b.damage * factor * (combo ? b.bonus : 1));
             hurt(b.from, amount);
             onHit(at.x, at.y, amount, combo);
-            cancelTimers();
+            cancelTimer(s.flashTimer);
             s.flash = true;
-            after(0.08, () => {
+            s.flashTimer = after(0.08, () => {
               s.flash = false;
             });
           }
