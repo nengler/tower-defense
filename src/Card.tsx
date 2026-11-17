@@ -1,29 +1,26 @@
 import { Flex, Text } from "@tsengine/runtime/jsx";
 
 import { useGame } from "./GameState.ts";
-import { FIELD_HEIGHT, TERRAIN_BONUS, terrainAt } from "./rules/map.ts";
+import { TERRAIN_BONUS, terrainAt } from "./rules/map.ts";
 import { MOVES } from "./rules/moves.ts";
 import { MAX_LEVEL, slotsFor, xpToNext } from "./rules/progress.ts";
 import type { Owned } from "./rules/roster.ts";
 import { FORMS, SPECIES, statsOf } from "./rules/species.ts";
 import { TYPE_COLOR } from "./rules/types.ts";
 
-/** Pixels across. */
-const WIDTH = 124;
-
 interface CardProps {
   creature: Owned;
 }
 
 /**
- * The selected creature's card, over the side of the field it is not on: its name (or its form's), level and XP, its stats (with
+ * The selected creature's card, in the side panel beside the field (so the field stays in view while it is open): its name (or its form's), level and XP, its stats (with
  * its terrain's bonus when it stands on its own type's terrain, ATTUNED), a CHOOSE button while a choice waits, and its moves. The
  * equipped moves are listed in the order it tries them, each with `UP` (try it earlier) and `x` (unequip); the moves it knows but has
  * not equipped follow, and pressing one equips it while a slot is free. All of it works mid-wave. `BENCH` takes it off the field,
  * `CLOSE` (or Escape) deselects it.
  *
- * The card takes every press that lands on it (`onPress`), its buttons first as they are drawn over it: without that, a press on a gap
- * between two rows went through to the tile under the card and moved the creature there.
+ * The card takes every press that lands on it (`onPress`), its buttons first as they are drawn over it, so a press never reaches
+ * what is under it.
  */
 export function Card({ creature }: CardProps) {
   const { equip, unequip, raise, benchSelected, deselect, openPrompt } = useGame.actions();
@@ -38,17 +35,12 @@ export function Card({ creature }: CardProps) {
 
   return (
     <Flex
-      float
-      anchor="top-left"
-      to="top-left"
-      x={creature.col >= 10 ? 2 : 320 - WIDTH - 2}
-      y={2}
-      width={WIDTH}
-      height={FIELD_HEIGHT - 4}
+      width="grow"
+      height="grow"
       direction="column"
-      gap={2}
+      gap={3}
       padding={4}
-      background="#141824f0"
+      background="#1a1f2e"
       borderWidth={1}
       borderColor={TYPE_COLOR[info.type]}
       onPress={() => {}}

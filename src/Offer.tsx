@@ -17,11 +17,11 @@ export function Offer() {
   const points = useGame((s) => s.mastery);
   const { takeOffer } = useGame.actions();
   return (
-    <Flex modal width={320} height={180} background="#10131ce0" direction="column" alignItems="center" justifyContent="center" gap={8}>
+    <Flex modal width={480} height={270} background="#10131ce0" direction="column" alignItems="center" justifyContent="center" gap={8}>
       <Text size={16}>CHOOSE A CREATURE</Text>
-      <Menu direction="row" gap={offer.length > 3 ? 3 : 6}>
+      <Menu direction="row" gap={offer.length > 3 ? 6 : 10}>
         {offer.map((id) => (
-          <Button key={id} autoFocus={id === offer[0]} onPress={() => takeOffer(id)} padding={3} width={offer.length > 3 ? 74 : 96} direction="column" gap={3}>
+          <Button key={id} autoFocus={id === offer[0]} onPress={() => takeOffer(id)} padding={5} width={offer.length > 3 ? 100 : 120} direction="column" gap={3}>
             <AnimatedSprite sheet="creatures.png" frameWidth={12} frameHeight={12} animations={CREATURE_ANIMATIONS} animation={id} />
             <Text color={TYPE_COLOR[SPECIES[id].type]}>{SPECIES[id].name}</Text>
             <Text color="#6a7088">{SPECIES[id].type.toUpperCase()}</Text>

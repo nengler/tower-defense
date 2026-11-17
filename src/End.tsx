@@ -22,7 +22,7 @@ export function End({ won }: EndProps) {
   const daily = useGame((s) => s.daily);
   const { toTitle } = useGame.actions();
   return (
-    <Flex direction="column" width={320} height={180} alignItems="center" justifyContent="center" gap={8}>
+    <Flex direction="column" width={480} height={270} alignItems="center" justifyContent="center" gap={8}>
       <Text size={16} color={won ? "#7ad07a" : "#f07a8a"}>
         {won ? "YOU HELD" : "OVERRUN"}
       </Text>
@@ -37,7 +37,7 @@ export function End({ won }: EndProps) {
           </Text>
         ))}
       </Flex>
-      <Menu gap={4} alignItems="stretch" width={120}>
+      <Menu gap={4} alignItems="stretch" width={160}>
         <Button autoFocus onPress={toTitle}>
           <Text>Title</Text>
         </Button>

@@ -39,11 +39,11 @@ test("a creature goes on any free tile that is not path, and moves from tile to 
 
 test("at most five on the field: a sixth from the bench is refused, but one on the field may still move", () => {
   let r = team(6);
-  for (let i = 0; i < FIELD_LIMIT; i++) r = place(r, i + 1, i, 8);
+  for (let i = 0; i < FIELD_LIMIT; i++) r = place(r, i + 1, i, 13);
   assert.equal(onField(r).length, 5);
-  assert.equal(canPlace(r, "meadow", 6, 10, 8), false);
-  assert.equal(place(r, 6, 10, 8), r);
-  r = place(r, 1, 10, 8);
+  assert.equal(canPlace(r, "meadow", 6, 10, 13), false);
+  assert.equal(place(r, 6, 10, 13), r);
+  r = place(r, 1, 10, 13);
   assert.equal(r[0]!.col, 10);
 });
 

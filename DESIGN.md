@@ -1,6 +1,6 @@
 # Design
 
-A minimalist tower defense at 320×180 where the towers are creatures. Creatures level up on their own, learn more moves than
+A minimalist tower defense at 480×270 where the towers are creatures. Creatures level up on their own, learn more moves than
 they can equip, and use their equipped moves automatically, each on its own cooldown. The strategy is in which creatures you
 field and which moves they have equipped, in what order.
 
@@ -154,7 +154,7 @@ on the offer, on the creature's card and on the end screen.
 ## Maps and terrain
 
 Three maps, chosen on the run setup screen: **Meadow** (a long winding path), **Riverbend** (tight bends, far apart) and
-**Gauntlet** (one bend that all of it passes). Each has **terrain tiles**, two for each type: ash (Ember), pool (Tide), pylon
+**Gauntlet** (short, one bend: the hard one). Each has **terrain tiles**, two for each type: ash (Ember), pool (Tide), pylon
 (Volt), rock (Stone) and grove (Bloom). A creature standing on its own type's terrain is **attuned**: +2 to every stat (shown on its
 card, and as a dot by it). Terrain sits beside the bends, so the best tiles for coverage and for attunement pull against each other.
 
@@ -183,13 +183,17 @@ on a day plays the same run. It unlocks nothing.
 
 ## Screen
 
-320 × 180. The field is a 20 × 9 grid of 16 px tiles (320 × 144) with the path drawn on it; the bottom 36 px is a bar with lives,
-the wave, and the start-wave button. Under each creature on the field, one pip per equipped move fills as its cooldown runs; dots
-over it while it settles, a yellow bar while jammed. Clicking a creature opens its card: stats, level, and its moves, which can be
-equipped, unequipped and reordered.
+480 × 270 (16:9; 4× fills a 1080p screen). The field is a 20 × 14 grid of 16 px tiles (320 × 224) in the top left, with the path drawn
+on it. Under each creature on the field, one pip per equipped move fills as its cooldown runs; dots over it while it settles, a
+yellow bar while jammed.
 
-Between waves the bar shows **what the next wave brings**: each enemy kind's walk and how many. It also has the speed button (1X or
-2X, or F) and, when a milestone follows the next wave, ELITE.
+- **The bar** (320 × 46, under the field): lives and the wave; a chip for every creature owned (its sprite and level, `!` when a
+  choice waits), which selects it; the start-wave button (Space), the speed button (1X or 2X, or F) and, when a milestone follows the
+  next wave, ELITE (E).
+- **The side panel** (160 × 270, right of the field): on top, **what the next wave brings** (during a wave, what this one brought):
+  each enemy kind's walk, name and count. Under it the selected creature's **card**: stats, level, and its moves, which can be
+  equipped, unequipped and reordered. The card never covers the field, so the creature being managed stays in view mid-wave.
+- The milestone offer, the learn prompt (which also lists what is equipped) and the pause menu cover the whole screen.
 
 ## Enemies
 
@@ -215,10 +219,11 @@ and jammers (6), shepherds (7), and the Prism (10).
 
 **Why moves need managing, and where creatures stand.** `tools/balance.ts` plays whole runs headless. A *skilled* run (it picks the
 better move at every step, re-equips its best moves, picks a team that sets up combos, and stands each creature where it shares the
-most path with its team, attuned when it can) wins on every map, losing its lives in the last three waves. A *managed* run that picks
-moves as well but stands its creatures at fixed spots loses by wave 6, and a *lazy* run that takes the first option of every prompt
-loses too. `--seeds=12` plays each strategy over twelve offer rolls: the skilled run wins about half of them at tier 0. The tests
-keep the table (`test/balance.expected.json`) as it is.
+most path with its team, attuned when it can) wins on the meadow and the riverbend, losing its lives in the last three waves, and
+holds the gauntlet until wave 10. A *managed* run that picks moves as well but stands its creatures at fixed spots loses by wave 8,
+and a *lazy* run that takes the first option of every prompt loses by wave 6. `--seeds=12` plays each strategy over twelve offer
+rolls: at tier 0 the skilled run wins about 9 of 12 on the meadow, 6 on the riverbend and 1 on the gauntlet. The tests keep the
+table (`test/balance.expected.json`) as it is.
 
 ## The first version
 

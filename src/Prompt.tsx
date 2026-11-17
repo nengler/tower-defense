@@ -42,15 +42,16 @@ export function Prompt() {
   };
 
   return (
-    <Flex modal width={320} height={180} background="#10131ce8" direction="column" alignItems="center" justifyContent="center" gap={6}>
+    <Flex modal width={480} height={270} background="#10131ce8" direction="column" alignItems="center" justifyContent="center" gap={6}>
       <Text size={16} color={color}>
         {isForm ? "EVOLVE" : "NEW MOVE"}
       </Text>
       <Text color="#a7b0c8">{`${species.name} LV${c?.level ?? 1}`}</Text>
+      <Text color="#6a7088">{`EQUIPPED: ${(c?.equipped ?? []).map((m) => MOVES[m].name).join(", ")}`}</Text>
       {s.picked === "" && (
         <Menu direction="row" gap={6} onBack={closePrompt}>
           {(choice?.options ?? []).map((option) => (
-            <Button key={option} autoFocus={option === choice?.options[0]} onPress={() => take(option)} padding={4} width={120} direction="column" gap={2}>
+            <Button key={option} autoFocus={option === choice?.options[0]} onPress={() => take(option)} padding={6} width={160} direction="column" gap={3}>
               <Text color={isForm ? color : TYPE_COLOR[MOVES[optionMove(option, false)].type]}>{optionName(option, isForm)}</Text>
               <Text color="#a7b0c8">{optionText(option, isForm)}</Text>
               <Text color="#6a7088">{optionDetail(option, isForm)}</Text>

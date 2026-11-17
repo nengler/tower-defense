@@ -14,9 +14,9 @@ export function Setup() {
   const unlocked = useGame((s) => s.unlocked);
   const { nextMap, nextTier, start, toTitle } = useGame.actions();
   return (
-    <Flex direction="column" width={320} height={180} alignItems="center" justifyContent="center" gap={8}>
+    <Flex direction="column" width={480} height={270} alignItems="center" justifyContent="center" gap={8}>
       <Text size={16}>NEW RUN</Text>
-      <Menu gap={4} alignItems="stretch" width={200} onBack={toTitle}>
+      <Menu gap={4} alignItems="stretch" width={260} onBack={toTitle}>
         <Button onPress={() => nextMap(1)} onAdjust={(direction) => nextMap(direction)} direction="column" gap={2}>
           <Text>{`MAP  < ${mapOf(map).name} >`}</Text>
           <Text color="#6a7088">{mapOf(map).text}</Text>

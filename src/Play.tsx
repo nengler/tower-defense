@@ -2,7 +2,6 @@ import { Entity, Hud, ParticleLayer, useInput, useMutable, useUpdate } from "@ts
 
 import { Banner } from "./Banner.tsx";
 import { Bar } from "./Bar.tsx";
-import { Card } from "./Card.tsx";
 import type { Effect as Used, Foe, Mark as Laid, Placed, Reacted } from "./battle.ts";
 import { Creature } from "./Creature.tsx";
 import { Effect } from "./Effect.tsx";
@@ -11,6 +10,7 @@ import { Enemy } from "./Enemy.tsx";
 import { Field } from "./Field.tsx";
 import { Mark } from "./Mark.tsx";
 import { Offer } from "./Offer.tsx";
+import { Panel } from "./Panel.tsx";
 import { useGame } from "./GameState.ts";
 import { Pause } from "./Pause.tsx";
 import { Popup } from "./Popup.tsx";
@@ -20,7 +20,7 @@ import { ENEMIES, hpOf, type EnemyKind } from "./rules/enemies.ts";
 import { centre, mapOf, TERRAIN_BONUS, TILE, terrainAt } from "./rules/map.ts";
 import { tilesUnder } from "./rules/marks.ts";
 import { MOVES, REACTION_COLOR, REACTION_RADIUS } from "./rules/moves.ts";
-import { creatureById, onField } from "./rules/roster.ts";
+import { onField } from "./rules/roster.ts";
 import { SPECIES } from "./rules/species.ts";
 import { hpScale, milestonesFor, speedScale, startLives } from "./rules/tiers.ts";
 import { TYPE_COLOR } from "./rules/types.ts";
@@ -36,8 +36,8 @@ import { MILESTONES, spawnsOf, WAVE_COUNT } from "./rules/waves.ts";
  * Pressing a tile selects the creature on it or puts the selected one there; Backspace benches the selected one, and 1 to 9 select a
  * creature by its place in the bar. The bar's button (or Space) starts the next wave; its ELITE (or E) makes that wave elite, when a
  * milestone follows it. When a creature has a choice waiting, a banner says so and N (or the banner) opens its prompt; the battle
- * stands still while the prompt is open. The selected creature's card shows over the field (its moves can be changed at any time);
- * Escape closes it, or pauses. Before each milestone wave a creature is offered, and no wave starts until one is taken.
+ * stands still while the prompt is open. The side panel shows the next wave and the selected creature's card (its moves can be changed at any time); Escape deselects, or
+ * pauses. Before each milestone wave a creature is offered, and no wave starts until one is taken.
  */
 export function Play() {
   const paused = useGame((s) => s.paused);
@@ -47,7 +47,6 @@ export function Play() {
   const tier = useGame((s) => s.tier);
   const eliteNext = useGame((s) => s.elite);
   const prompting = useGame((s) => s.prompting);
-  const chosen = creatureById(team, selectedId);
   const offering = useGame((s) => s.offer.length > 0);
   const waiting = team.some((c) => c.choice !== null);
   const { pause, finish, gainXp, benchSelected, choose, deselect, milestone, awardWave, toggleElite, toggleSpeed, openNextPrompt } =
@@ -252,8 +251,8 @@ export function Play() {
       ))}
       <Hud>
         <Bar lives={s.lives} wave={s.wave} active={s.active} canElite={canElite} onStartWave={startWave} />
+        <Panel wave={s.wave} active={s.active} />
         {waiting && prompting < 0 && <Banner />}
-        {chosen !== undefined && prompting < 0 && <Card creature={chosen} />}
         {prompting >= 0 && <Prompt />}
         {offering && <Offer />}
         {paused && <Pause />}

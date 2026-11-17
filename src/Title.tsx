@@ -11,9 +11,9 @@ import { today } from "./rules/tiers.ts";
 export function Title({ name }: { name: string }) {
   const { openSetup, startDaily, openSettings } = useGame.actions();
   return (
-    <Flex direction="column" width={320} height={180} alignItems="center" justifyContent="center" gap={16}>
+    <Flex direction="column" width={480} height={270} alignItems="center" justifyContent="center" gap={16}>
       <Text size={16}>{name}</Text>
-      <Menu gap={4} alignItems="stretch" width={120}>
+      <Menu gap={4} alignItems="stretch" width={160}>
         <Button autoFocus onPress={openSetup}>
           <Text>Play</Text>
         </Button>
