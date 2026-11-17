@@ -5,6 +5,8 @@
  * - `creatures.png`: 12 × 12 frames, two to a row (an idle bob), one row a species in `SPECIES_IDS` order, then one a form in
  *   `FORM_IDS` order (each form is its species drawn again, with something added).
  * - `enemies.png`: 12 × 12 frames, two to a row (a walk), one row a kind in `ENEMY_KINDS` order.
+ * - `font.png`: the game's text, ASCII 32 to 127 in a 16 × 6 grid of 6 × 8 cells, each a 5 × 7 glyph (columns of bits, top bit
+ *   first is the lowest). 8 pixels a line: easier to read at 480 × 270 than the engine's 3 × 5 `tse:small`.
  * - `tiles.png`: 16 × 16 tiles in a row: grass, grass with a tuft, path, then a terrain tile per type in `TYPES` order (ash, pool,
  *   pylon, rock, grove).
  *
@@ -406,6 +408,120 @@ function tiles(): void {
   c.write("tiles.png");
 }
 
+/** A 5 × 7 font, one glyph a string of five columns (two hex digits each, bit 0 the top row), for ASCII 32 to 127. g, j, p, q and y drop into the eighth row. */
+const GLYPHS: readonly string[] = [
+  "0000000000",
+  "00005F0000",
+  "0007000700",
+  "147F147F14",
+  "242A7F2A12",
+  "2313086462",
+  "3649552250",
+  "0005030000",
+  "001C224100",
+  "0041221C00",
+  "082A1C2A08",
+  "08083E0808",
+  "0050300000",
+  "0808080808",
+  "0060600000",
+  "2010080402",
+  "3E5149453E",
+  "00427F4000",
+  "4261514946",
+  "2141454B31",
+  "1814127F10",
+  "2745454539",
+  "3C4A494930",
+  "0171090503",
+  "3649494936",
+  "064949291E",
+  "0036360000",
+  "0056360000",
+  "0814224100",
+  "1414141414",
+  "0041221408",
+  "0201510906",
+  "324979413E",
+  "7E1111117E",
+  "7F49494936",
+  "3E41414122",
+  "7F4141221C",
+  "7F49494941",
+  "7F09090101",
+  "3E41415132",
+  "7F0808087F",
+  "00417F4100",
+  "2040413F01",
+  "7F08142241",
+  "7F40404040",
+  "7F0204027F",
+  "7F0408107F",
+  "3E4141413E",
+  "7F09090906",
+  "3E4151215E",
+  "7F09192946",
+  "4649494931",
+  "01017F0101",
+  "3F4040403F",
+  "1F2040201F",
+  "7F2018207F",
+  "6314081463",
+  "0304780403",
+  "6151494543",
+  "007F414100",
+  "0204081020",
+  "0041417F00",
+  "0402010204",
+  "4040404040",
+  "0001020400",
+  "2054545478",
+  "7F48444438",
+  "3844444420",
+  "384444487F",
+  "3854545418",
+  "087E090102",
+  "98A4A4A47C",
+  "7F08040478",
+  "00447D4000",
+  "0080807D00",
+  "007F102844",
+  "00417F4000",
+  "7C04180478",
+  "7C08040478",
+  "3844444438",
+  "FC24242418",
+  "18242424FC",
+  "7C08040408",
+  "4854545420",
+  "043F444020",
+  "3C4040207C",
+  "1C2040201C",
+  "3C4030403C",
+  "4428102844",
+  "9CA0A0A07C",
+  "4464544C44",
+  "0008364100",
+  "00007F0000",
+  "0041360800",
+  "0804081008",
+  "0000000000",
+];
+
+function font(): void {
+  const c = new Canvas(96, 48);
+  const ink: Rgb = [0xff, 0xff, 0xff];
+  GLYPHS.forEach((glyph, i) => {
+    const ox = (i % 16) * 6;
+    const oy = Math.floor(i / 16) * 8;
+    for (let col = 0; col < 5; col++) {
+      const bits = parseInt(glyph.slice(col * 2, col * 2 + 2), 16);
+      for (let row = 0; row < 8; row++) if (bits & (1 << row)) c.set(ox + col, oy + row, ink);
+    }
+  });
+  c.write("font.png");
+}
+
 sheet("creatures.png", [
   ...SPECIES_IDS.map((id) => CREATURES[id]),
   ...FORM_IDS.map((id): Draw => (c, ox, oy, f) => {
@@ -418,4 +534,5 @@ sheet(
   ENEMY_KINDS.map((k) => ENEMIES[k])
 );
 tiles();
-console.log(`wrote creatures.png, enemies.png and tiles.png to ${assets}`);
+font();
+console.log(`wrote creatures.png, enemies.png, tiles.png and font.png to ${assets}`);

@@ -195,7 +195,7 @@ test("maps: terrain is never on the path, every type has terrain on every map, a
     for (const t of TYPES) assert.ok([...m.terrain.values()].includes(t), `${id} has ${t} terrain`);
   }
   assert.ok(isPath("meadow", 0, 1));
-  assert.equal(terrainAt("meadow", 5, 5), "tide");
+  assert.equal(terrainAt("meadow", 5, 9), "tide");
   assert.equal(terrainAt("meadow", 0, 0), null);
   assert.equal(mapOf("nowhere").id, "meadow");
   assert.ok(MAPS.gauntlet.path.length < MAPS.meadow.path.length, "the gauntlet is the short one");

@@ -9,7 +9,7 @@ import { useGame } from "./GameState.ts";
 export function Pause() {
   const { resume, toTitle } = useGame.actions();
   return (
-    <Flex modal width={320} height={180} background="#10131cd0" alignItems="center" justifyContent="center">
+    <Flex modal width={480} height={270} background="#10131cd0" alignItems="center" justifyContent="center">
       <Menu gap={4} padding={8} background="#1c2235" borderRadius={3} width={140} alignItems="stretch" onBack={resume}>
         <Text>Paused</Text>
         <Button autoFocus onPress={resume}>

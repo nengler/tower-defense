@@ -8,9 +8,9 @@ export function Settings() {
   const music = useGame((s) => s.music);
   const { changeVolume, toggleMusic, toTitle } = useGame.actions();
   return (
-    <Flex direction="column" width={320} height={180} alignItems="center" justifyContent="center" gap={12}>
+    <Flex direction="column" width={480} height={270} alignItems="center" justifyContent="center" gap={12}>
       <Text size={16}>Settings</Text>
-      <Menu gap={4} alignItems="stretch" width={160} onBack={toTitle}>
+      <Menu gap={4} alignItems="stretch" width={200} onBack={toTitle}>
         <Button autoFocus onPress={() => changeVolume(1)} onAdjust={(direction) => changeVolume(direction)}>
           <Text>{`Volume  < ${volume} >`}</Text>
         </Button>

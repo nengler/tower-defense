@@ -1,10 +1,16 @@
 import type { Type } from "./types.ts";
 
-/** The field: a 20 × 9 grid of 16 px tiles, the top 320 × 144 of the screen. The bar is under it. */
+/**
+ * The screen is 480 × 270. The field is a 20 × 14 grid of 16 px tiles, the top left 320 × 224 of it; the bar is under the field and
+ * the side panel to its right.
+ */
 export const TILE = 16;
 export const COLS = 20;
-export const ROWS = 9;
+export const ROWS = 14;
+export const FIELD_WIDTH = COLS * TILE;
 export const FIELD_HEIGHT = ROWS * TILE;
+export const SCREEN_WIDTH = 480;
+export const SCREEN_HEIGHT = 270;
 
 export interface Point {
   readonly x: number;
@@ -119,33 +125,33 @@ export const MAPS: Readonly<Record<MapId, GameMap>> = {
     [
       [-1, 1],
       [4, 1],
-      [4, 6],
-      [9, 6],
-      [9, 2],
-      [14, 2],
-      [14, 7],
-      [20, 7],
+      [4, 10],
+      [9, 10],
+      [9, 3],
+      [14, 3],
+      [14, 12],
+      [20, 12],
     ],
     {
       tide: [
-        [5, 5],
-        [13, 6],
+        [5, 9],
+        [13, 11],
       ],
       volt: [
-        [8, 5],
-        [10, 3],
+        [8, 9],
+        [10, 4],
       ],
       stone: [
         [3, 2],
-        [15, 6],
+        [15, 11],
       ],
       ember: [
-        [5, 2],
-        [8, 3],
+        [5, 4],
+        [8, 5],
       ],
       bloom: [
-        [13, 3],
-        [10, 5],
+        [13, 4],
+        [10, 8],
       ],
     }
   ),
@@ -154,34 +160,34 @@ export const MAPS: Readonly<Record<MapId, GameMap>> = {
     "Riverbend",
     "Tight bends, far apart.",
     [
-      [-1, 4],
-      [6, 4],
+      [-1, 6],
+      [6, 6],
       [6, 1],
       [12, 1],
-      [12, 7],
-      [17, 7],
-      [17, 3],
-      [20, 3],
+      [12, 12],
+      [17, 12],
+      [17, 5],
+      [20, 5],
     ],
     {
       tide: [
         [7, 2],
-        [16, 6],
+        [16, 11],
       ],
       volt: [
         [11, 2],
-        [3, 5],
+        [3, 7],
       ],
       stone: [
-        [5, 3],
-        [14, 5],
+        [5, 5],
+        [13, 10],
       ],
       ember: [
-        [13, 6],
+        [13, 11],
         [9, 0],
       ],
       bloom: [
-        [18, 4],
+        [18, 6],
         [9, 2],
       ],
     }
@@ -189,33 +195,33 @@ export const MAPS: Readonly<Record<MapId, GameMap>> = {
   gauntlet: makeMap(
     "gauntlet",
     "Gauntlet",
-    "One bend: all of it passes by.",
+    "Short, one bend. The hard one.",
     [
-      [-1, 2],
-      [10, 2],
-      [10, 6],
-      [20, 6],
+      [-1, 3],
+      [10, 3],
+      [10, 10],
+      [20, 10],
     ],
     {
       tide: [
-        [9, 3],
-        [15, 5],
+        [9, 4],
+        [15, 9],
       ],
       volt: [
-        [11, 5],
-        [5, 3],
+        [11, 9],
+        [5, 4],
       ],
       stone: [
-        [9, 7],
-        [6, 1],
+        [9, 11],
+        [6, 2],
       ],
       ember: [
-        [11, 1],
-        [15, 7],
+        [11, 2],
+        [15, 11],
       ],
       bloom: [
-        [5, 1],
-        [11, 3],
+        [5, 2],
+        [11, 4],
       ],
     }
   ),

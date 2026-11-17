@@ -46,11 +46,11 @@ export interface Strategy {
 /** Beside the meadow's bends, where a creature covers two stretches of it. */
 const BENDS: readonly (readonly [number, number])[] = [
   [3, 2],
-  [5, 5],
-  [8, 5],
-  [10, 3],
-  [13, 3],
-  [15, 6],
+  [5, 9],
+  [8, 9],
+  [10, 4],
+  [13, 4],
+  [15, 11],
 ];
 
 /** The team a strong player builds: soak and Volt for chains, stone for stuns and shatters, then fire and growth. */
@@ -58,12 +58,12 @@ const COMBO_TEAM: readonly SpeciesId[] = ["puddlepup", "voltkit", "pebblet", "em
 const PLAIN: readonly SpeciesId[] = ["emberling", "puddlepup", "voltkit", "emberling", "voltkit", "puddlepup"];
 
 export const STRATEGIES: readonly Strategy[] = [
-  { name: "skilled", map: "meadow", prefer: COMBO_TEAM, placing: "best", learning: "best", seed: 31677 },
+  { name: "skilled", map: "meadow", prefer: COMBO_TEAM, placing: "best", learning: "best", seed: 1 },
   { name: "managed", map: "meadow", prefer: PLAIN, placing: "fixed", learning: "best", seed: 1 },
   { name: "lazy", map: "meadow", prefer: PLAIN, placing: "fixed", learning: "first", seed: 1 },
   { name: "no creatures placed", map: "meadow", prefer: PLAIN, placing: "none", learning: "first", seed: 1 },
-  { name: "skilled, riverbend", map: "riverbend", prefer: COMBO_TEAM, placing: "best", learning: "best", seed: 1 },
-  { name: "skilled, gauntlet", map: "gauntlet", prefer: COMBO_TEAM, placing: "best", learning: "best", seed: 47515 },
+  { name: "skilled, riverbend", map: "riverbend", prefer: COMBO_TEAM, placing: "best", learning: "best", seed: 55434 },
+  { name: "skilled, gauntlet", map: "gauntlet", prefer: COMBO_TEAM, placing: "best", learning: "best", seed: 55434 },
 ];
 
 /**
