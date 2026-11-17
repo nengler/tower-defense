@@ -1,6 +1,6 @@
 # tower-defense
 
-A tower defense game built on [react-game-engine](https://github.com/nengler/react-game-engine). Started from the engine's
+A tower defense game built on [tse](https://github.com/nengler/tse). Started from the engine's
 `menu` template (a title screen, settings and a pause menu).
 
 ## Setup
