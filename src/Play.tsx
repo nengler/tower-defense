@@ -17,7 +17,7 @@ import { ENEMIES, hpOf, type EnemyKind } from "./rules/enemies.ts";
 import { MOVES } from "./rules/moves.ts";
 import { BUFF_XP_SHARE } from "./rules/progress.ts";
 import { TYPE_COLOR } from "./rules/types.ts";
-import { centre, mapOf, toughnessAt } from "./rules/map.ts";
+import { centre, MAPS, toughnessAt } from "./rules/map.ts";
 import { SPECIES } from "./rules/species.ts";
 import { Night } from "./Night.tsx";
 import { creatureById, onField } from "./rules/roster.ts";
@@ -46,7 +46,7 @@ export function Play() {
   const offering = useGame((s) => s.offer.length > 0);
   const moving = useGame((s) => s.moving);
   const mapId = useGame((s) => s.map);
-  const night = mapOf(mapId).night;
+  const night = MAPS[mapId].night;
   const { pause, finish, gainXp, benchSelected, startMove, choose, deselect, milestone, awardWave } = useGame.actions();
 
   const s = useMutable({
@@ -84,7 +84,7 @@ export function Play() {
     s.clock += dt;
     while (s.spawned < spawns.length && spawns[s.spawned]!.at <= s.clock) {
       const kind = spawns[s.spawned]!.kind;
-      s.enemies = [...s.enemies, { id: s.nextId, kind, maxHp: hpOf(kind, s.wave) * toughnessAt(mapOf(mapId), s.wave) }];
+      s.enemies = [...s.enemies, { id: s.nextId, kind, maxHp: hpOf(kind, s.wave) * toughnessAt(MAPS[mapId], s.wave) }];
       s.spawned += 1;
       s.nextId += 1;
     }

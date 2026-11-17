@@ -1,7 +1,7 @@
 import { Entity, Layer, Sprite } from "@tsengine/runtime/jsx";
 
 import { useGame } from "./GameState.ts";
-import { COLS, mapOf, MAPS, ROWS, TILE, type GameMap, type MapId } from "./rules/map.ts";
+import { COLS, MAPS, ROWS, TILE, type GameMap, type MapId } from "./rules/map.ts";
 
 /** Frames of `assets/tiles.png` (`tools/make-art.ts`). */
 const FRAME = { grass: 0, tuft: 1, path: 2, bog: 3, reeds: 4, cobbles: 5, water: 6, lantern: 7, mushroom: 8 } as const;
@@ -52,8 +52,7 @@ const PROPS = perMap((map): readonly Ground[] => [
  * ripples, and the lanterns and mushrooms that stand on it.
  */
 export function Field() {
-  const mapId = useGame((s) => s.map);
-  const map = mapOf(mapId).id;
+  const map = useGame((s) => s.map);
   return (
     <Entity>
       {GROUND[map].map((t) => (

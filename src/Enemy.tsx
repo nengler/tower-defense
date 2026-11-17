@@ -2,7 +2,7 @@ import { after, AnimatedSprite, cancelTimer, Collider, Entity, Shape, useMutable
 
 import { afterArmor, ENEMIES, type EnemyKind } from "./rules/enemies.ts";
 import { ENEMY_ANIMATIONS } from "./rules/draw.ts";
-import { mapOf, pathAt } from "./rules/map.ts";
+import { MAPS, pathAt } from "./rules/map.ts";
 import { useGame } from "./GameState.ts";
 import type { Status } from "./rules/moves.ts";
 import { TYPE_COLOR, typeFactor } from "./rules/types.ts";
@@ -35,7 +35,7 @@ interface EnemyProps {
 export function Enemy({ id, kind, maxHp, onKilled, onLeaked, onDamaged, onHit }: EnemyProps) {
   const info = ENEMIES[kind];
   const mapId = useGame((g) => g.map);
-  const path = mapOf(mapId).path;
+  const path = MAPS[mapId].path;
   const s = useMutable({
     dist: 0,
     hp: maxHp,

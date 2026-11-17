@@ -177,17 +177,9 @@ export const MAPS: Readonly<Record<MapId, GameMap>> = {
   ),
 };
 
-/**
- * The map with this id. Takes a plain string because a component that selects `map` from the game state sees it as one (the
- * compiler widens a union of string literals in the state to `string`); an unknown id is the Meadow.
- */
 /** What an enemy's hit points are multiplied by on this map in this wave (counted from 1). */
 export function toughnessAt(map: GameMap, wave: number): number {
   return map.toughness ** Math.max(0, wave - 1);
-}
-
-export function mapOf(id: string): GameMap {
-  return MAPS[id as MapId] ?? MAPS.meadow;
 }
 
 /** Can a creature stand on this tile of the map: on the grid, not path, not water, no lantern or mushroom. */

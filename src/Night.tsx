@@ -1,7 +1,7 @@
 import { Entity, Layer, Light, Lighting, nearby, Shape, useMutable, useUpdate } from "@tsengine/runtime/jsx";
 
 import type { Placed } from "./battle.ts";
-import { centre, FIELD_HEIGHT, mapOf } from "./rules/map.ts";
+import { centre, FIELD_HEIGHT, MAPS, type MapId } from "./rules/map.ts";
 import { MOVES } from "./rules/moves.ts";
 import { TYPE_COLOR, type Type } from "./rules/types.ts";
 
@@ -14,8 +14,7 @@ export interface Glow {
 }
 
 interface NightProps {
-  /** The map's id (see `mapOf`). */
-  map: string;
+  map: MapId;
   creatures: readonly Glow[];
   /** Moves landing now: each lights up where it lands, in its type's colour. */
   effects: readonly Placed[];
@@ -38,9 +37,6 @@ const FIREFLIES = Array.from({ length: 9 }, (_, i) => ({
  * the picture back to its own colours, so a glow layer adds the brightest of them (lanterns, mushrooms, moves, fireflies) on top,
  * past them.
  */
-/** How strong the glow layer's lights are, against their lights in the light map. */
-const GLOW = 0.45;
-
 /** A lantern's flame at time `t`: two waves out of step, so no two lanterns (`i`) flicker alike. */
 const flicker = (t: number, i: number) => 0.82 + 0.1 * Math.sin(t * 9.1 + i * 2.3) * Math.sin(t * 5.7 + i);
 
@@ -48,8 +44,8 @@ const flicker = (t: number, i: number) => 0.82 + 0.1 * Math.sin(t * 9.1 + i * 2.
 const lampsOf = (tiles: readonly (readonly [number, number])[]) => tiles.map(([col, row], i) => ({ id: i, x: centre(col, row).x, y: centre(col, row).y }));
 
 export function Night({ map, creatures, effects }: NightProps) {
-  const lanterns = lampsOf(mapOf(map).lanterns);
-  const mushrooms = lampsOf(mapOf(map).mushrooms);
+  const lanterns = lampsOf(MAPS[map].lanterns);
+  const mushrooms = lampsOf(MAPS[map].mushrooms);
   const s = useMutable({
     t: 0,
     /** Where each enemy is, read from their colliders each step. */
@@ -92,24 +88,22 @@ export function Night({ map, creatures, effects }: NightProps) {
           />
         ))}
       </Lighting>
-      {/* Its lights are dimmed (GLOW) rather than the layer made translucent: the software renderer lays a translucent add layer over as a
-          normal one, which would show each light's dark edge. */}
-      <Layer blend="add" childBlend="add">
+      <Layer blend="add" childBlend="add" opacity={0.45}>
         {lanterns.map((l) => (
-          <Light key={`gl${l.id}`} radius={20} color="#ffb060" intensity={GLOW * flicker(s.t, l.id)} x={l.x} y={l.y - 5} />
+          <Light key={`gl${l.id}`} radius={20} color="#ffb060" intensity={flicker(s.t, l.id)} x={l.x} y={l.y - 5} />
         ))}
         {mushrooms.map((m) => (
-          <Light key={`gm${m.id}`} radius={10} color="#40e0c0" intensity={GLOW * (0.5 + 0.2 * Math.sin(s.t * 1.4 + m.id * 1.9))} x={m.x} y={m.y - 2} />
+          <Light key={`gm${m.id}`} radius={10} color="#40e0c0" intensity={0.5 + 0.2 * Math.sin(s.t * 1.4 + m.id * 1.9)} x={m.x} y={m.y - 2} />
         ))}
         {effects.map((e) => (
-          <Light key={`gf${e.id}`} radius={Math.max(10, e.radius)} color={TYPE_COLOR[MOVES[e.move].type]} intensity={GLOW * 0.8} x={e.x} y={e.y} />
+          <Light key={`gf${e.id}`} radius={Math.max(10, e.radius)} color={TYPE_COLOR[MOVES[e.move].type]} intensity={0.8} x={e.x} y={e.y} />
         ))}
         {FIREFLIES.map((f) => (
           <Light
             key={`gff${f.id}`}
             radius={3}
             color="#f4ff9a"
-            intensity={GLOW * Math.max(0, Math.sin(s.t * 1.3 + f.phase))}
+            intensity={Math.max(0, Math.sin(s.t * 1.3 + f.phase))}
             x={f.x + 14 * Math.sin(s.t * f.speed + f.phase)}
             y={f.y + 8 * Math.sin(s.t * f.speed * 1.7 + f.phase)}
           />

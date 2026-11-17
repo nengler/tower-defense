@@ -1,7 +1,7 @@
 import { Entity, Shape } from "@tsengine/runtime/jsx";
 
 import { useGame } from "./GameState.ts";
-import { COLS, mapOf, ROWS, TILE } from "./rules/map.ts";
+import { COLS, MAPS, ROWS, TILE } from "./rules/map.ts";
 import { canPlace } from "./rules/roster.ts";
 
 /** Every tile of the grid, in reading order. */
@@ -16,7 +16,7 @@ export function Spots() {
   const roster = useGame((s) => s.roster);
   const selected = useGame((s) => s.selected);
   const mapId = useGame((s) => s.map);
-  const map = mapOf(mapId);
+  const map = MAPS[mapId];
   const others = moving ? roster.filter((c) => c.col >= 0 && c.id !== selected) : [];
   const free = moving ? TILES.filter((t) => canPlace(roster, selected, t.col, t.row, map)) : [];
   return (
