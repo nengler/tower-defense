@@ -58,7 +58,10 @@ export const ENEMY_ANIMATIONS = {
   prism: { frames: "22-23", fps: 3 },
 } as const;
 
-/** The tiles of `assets/tiles.png`: grass, grass with a tuft, path, then a terrain tile per type in `TYPES` order. */
+/**
+ * The tiles of `assets/tiles.png` (`tools/make-art.ts`): the day maps' grass, grass with flowers and road (Kenney's Tiny Town), then a
+ * terrain tile per type in `TYPES` order, then Glowmire's night tiles, then the road joined to its neighbours (`pathFrame`).
+ */
 export const TILE_FRAME = {
   grass: 0,
   tuft: 1,
@@ -75,6 +78,14 @@ export const TILE_FRAME = {
   lantern: 12,
   mushroom: 13,
 } as const;
+
+/** The first of the sixteen road tiles, one for each set of neighbours that are road too (`pathFrame`). */
+export const PATH_FIRST = 14;
+
+/** The road tile for a path tile whose neighbours north, east, south and west are road (or the edge the path runs off). */
+export function pathFrame(n: boolean, e: boolean, s: boolean, w: boolean): number {
+  return PATH_FIRST + (n ? 1 : 0) + (e ? 2 : 0) + (s ? 4 : 0) + (w ? 8 : 0);
+}
 
 /** A `#rrggbb` colour as three numbers 0 to 1, for a shader's `params`. */
 export function rgbOf(hex: string): [number, number, number] {

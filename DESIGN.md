@@ -226,7 +226,9 @@ Between waves the bar shows **what the next wave brings**: each enemy kind's wal
 
 Enemies never hurt creatures. The first four are plain; the rest get in the way of a plan instead.
 
-Their sprites are from **Tiny Creatures** by Clint Bellanger (CC0; `tools/tiny-creatures/`), each picked so its colour is its type's.
+Their sprites are from **Tiny Creatures** by Clint Bellanger (CC0; `tools/tiny-creatures/`), each picked so its colour is its type's. The day maps' ground
+(grass, the road, and the ash, pylon, rock and grove terrain) is Kenney's **Tiny Town** (CC0; `tools/kenney/`), which Tiny Creatures
+is made to match.
 
 | Enemy | Type | Does |
 | --- | --- | --- |

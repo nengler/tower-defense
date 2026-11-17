@@ -5,21 +5,23 @@
  * - `creatures.png`: 12 × 12 frames, two to a row (an idle bob), one row a species in `SPECIES_IDS` order, then one a form in
  *   `FORM_IDS` order (each form is its species drawn again, with something added).
  * - `enemies.png` is not drawn here: `tools/make-enemies.ts` lays it out from the Tiny Creatures sprites.
- * - `tiles.png`: 16 × 16 tiles in a row: grass, grass with a tuft, path, then a terrain tile per type in `TYPES` order (ash, pool,
- *   pylon, rock, grove); then Glowmire's grass, grass with reeds, cobbled path and water, and a lantern and a glow-mushroom (on a clear
- *   background, drawn over the grass).
+ * - `tiles.png`: 16 × 16 tiles in a row: grass, grass with flowers, road, then a terrain tile per type in `TYPES` order (ash, pool,
+ *   pylon, rock, grove), all from or in the style of Kenney's Tiny Town (CC0, `tools/kenney/`); then Glowmire's grass, grass with
+ *   reeds, cobbled path and water, and a lantern and a glow-mushroom (on a clear background, drawn over the grass); then sixteen road
+ *   tiles, each joined to the neighbours that are road too.
  *
  *   node tools/make-art.ts
  */
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { encodePng } from "@tsengine/player-node";
+import { decodePng, encodePng } from "@tsengine/player-node";
 
 import { FORM_IDS, FORMS, SPECIES_IDS } from "../src/rules/species.ts";
 
-const assets = join(dirname(fileURLToPath(import.meta.url)), "../assets");
+const here = dirname(fileURLToPath(import.meta.url));
+const assets = join(here, "../assets");
 
 type Rgb = readonly [number, number, number];
 
@@ -217,64 +219,74 @@ function sheet(name: string, rows: readonly Draw[]): void {
   c.write(name);
 }
 
+/** Tile `n` of Kenney's Tiny Town (CC0), as copied into `tools/kenney/`. */
+function tinyTown(n: number): { readonly width: number; readonly height: number; readonly rgba: Uint8Array } {
+  return decodePng(readFileSync(join(here, "kenney", `tiny-town-${String(n).padStart(4, "0")}.png`)));
+}
+
+/** Draw the `w` × `h` part of `img` at (sx, sy) onto `c` at (ox, oy), skipping clear pixels. */
+function blit(c: Canvas, img: { readonly width: number; readonly rgba: Uint8Array }, ox: number, oy: number, sx = 0, sy = 0, w = 16, h = 16): void {
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      const i = ((sy + y) * img.width + sx + x) * 4;
+      if ((img.rgba[i + 3] ?? 0) === 0) continue;
+      c.set(ox + x, oy + y, [img.rgba[i]!, img.rgba[i + 1]!, img.rgba[i + 2]!]);
+    }
+}
+
+/** Where the road tile for the neighbour mask `mask` is (`pathFrame` in `src/rules/draw.ts`): N 1, E 2, S 4, W 8. */
+const PATH_FIRST = 14;
+
+/**
+ * Tiny Town's dirt road is drawn for areas two or more tiles wide: an edge piece for each side, an outer corner for each corner, and
+ * an inner corner for each bend. The maps' paths are one tile wide, so each path tile is put together from four 8 × 8 quarters, each
+ * quarter taken from the piece that fits the two neighbours on its side: grass on both, an outer corner; path on one, that edge;
+ * path on both, the inner corner (the tile between them, diagonally, is never path).
+ */
+function pathTile(c: Canvas, ox: number, mask: number): void {
+  const n = (mask & 1) !== 0;
+  const e = (mask & 2) !== 0;
+  const s = (mask & 4) !== 0;
+  const w = (mask & 8) !== 0;
+  // For each quarter: [its x and y in the tile, the outer corner, the edge across (path above or below only), the edge along
+  // (path beside only), the inner corner], and which two neighbours decide it.
+  const quarters = [
+    { qx: 0, qy: 0, v: n, h: w, outer: 12, vertical: 24, horizontal: 13, inner: 39 },
+    { qx: 8, qy: 0, v: n, h: e, outer: 14, vertical: 26, horizontal: 13, inner: 40 },
+    { qx: 0, qy: 8, v: s, h: w, outer: 36, vertical: 24, horizontal: 37, inner: 42 },
+    { qx: 8, qy: 8, v: s, h: e, outer: 38, vertical: 26, horizontal: 37, inner: 41 },
+  ];
+  for (const q of quarters) {
+    const piece = q.v && q.h ? q.inner : q.v ? q.vertical : q.h ? q.horizontal : q.outer;
+    blit(c, tinyTown(piece), ox + q.qx, q.qy, q.qx, q.qy, 8, 8);
+  }
+}
+
 function tiles(): void {
-  const c = new Canvas(16 * 14, 16);
-  const GRASS: Rgb = [0x22, 0x32, 0x28];
-  const GRASS_DARK: Rgb = [0x1d, 0x2a, 0x22];
-  const TUFT: Rgb = [0x3a, 0x5a, 0x40];
-  const DIRT: Rgb = [0x5b, 0x4d, 0x3a];
-  const DIRT_DARK: Rgb = [0x4e, 0x42, 0x32];
-  const DIRT_LIGHT: Rgb = [0x6a, 0x5a, 0x44];
+  const c = new Canvas(16 * (PATH_FIRST + 16), 16);
   const noise = (x: number, y: number): number => (((x * 73856093) ^ (y * 19349663)) >>> 0) % 9;
+  // The day maps' ground is Kenney's Tiny Town (CC0, tools/kenney/): grass, grass with flowers, and the road's middle.
+  const grass = tinyTown(0);
+  blit(c, grass, 0, 0);
+  blit(c, tinyTown(2), 16, 0);
+  blit(c, tinyTown(25), 32, 0);
+  // The terrain, on grass: an autumn tree (ash, Ember), a pond (pool, Tide), a gold crystal (pylon, Volt), cobbles (rock, Stone)
+  // and a green tree (grove, Bloom).
+  for (const n of [3, 4, 5, 7]) blit(c, grass, n * 16, 0);
+  blit(c, tinyTown(27), 3 * 16, 0);
+  blit(c, tinyTown(93), 5 * 16, 0);
+  blit(c, tinyTown(43), 6 * 16, 0);
+  blit(c, tinyTown(16), 7 * 16, 0);
+  // The pond is drawn, in Tiny Town's way (the same dark outline), since the pack has no water.
+  const OUTLINE: Rgb = [0x3f, 0x26, 0x31];
   for (let y = 0; y < 16; y++)
     for (let x = 0; x < 16; x++) {
-      const n = noise(x, y);
-      // A dark edge at the bottom and right, so the grid reads as tiles.
-      const edge = x === 15 || y === 15;
-      c.set(x, y, edge || n === 0 ? GRASS_DARK : GRASS);
-      c.set(16 + x, y, edge || n === 0 ? GRASS_DARK : GRASS);
-      c.set(32 + x, y, n === 0 ? DIRT_DARK : n === 1 ? DIRT_LIGHT : DIRT);
+      const d = Math.hypot((x + 0.5 - 8) / 6.5, (y + 0.5 - 8.5) / 5.5);
+      if (d > 1) continue;
+      const rim = d > 0.82;
+      c.set(4 * 16 + x, y, rim ? OUTLINE : (x + y * 2) % 7 === 0 && d < 0.7 ? TONE.tide.light : y < 7 ? TONE.tide.main : TONE.tide.dark);
     }
-  for (const [x, y] of [
-    [5, 9],
-    [6, 8],
-    [7, 9],
-    [10, 5],
-    [11, 4],
-  ] as const)
-    c.set(16 + x, y, TUFT);
-  // The terrain: grass underneath (the same dark edge), with each type's ground on it.
-  const terrain = (n: number, draw: (x: number, y: number) => Rgb | null) => {
-    for (let y = 0; y < 16; y++)
-      for (let x = 0; x < 16; x++) {
-        const edge = x === 15 || y === 15;
-        c.set(n * 16 + x, y, edge ? GRASS_DARK : (draw(x, y) ?? GRASS));
-      }
-  };
-  // Ash: dark ground with glowing cracks.
-  terrain(3, (x, y) => ((x * 3 + y * 5) % 11 === 0 ? TONE.ember.main : noise(x, y) < 2 ? [0x3a, 0x2a, 0x26] : [0x2e, 0x24, 0x22]));
-  // Pool: water with a light ripple, a grass rim.
-  terrain(4, (x, y) => {
-    if (x < 2 || y < 2 || x > 12 || y > 12) return null;
-    return (x + y * 2) % 7 === 0 ? TONE.tide.light : TONE.tide.dark;
-  });
-  // Pylon: a crystal standing in the grass.
-  terrain(5, (x, y) => {
-    const w = 3 - Math.abs(7 - y) / 2;
-    if (y >= 3 && y <= 12 && Math.abs(x - 7) <= w) return x <= 7 ? TONE.volt.light : TONE.volt.main;
-    return null;
-  });
-  // Rock: a few stones.
-  terrain(6, (x, y) => {
-    const stone = (cx: number, cy: number, r: number) => Math.hypot(x - cx, y - cy) <= r;
-    if (stone(5, 6, 3.2) || stone(10, 10, 2.6) || stone(11, 4, 1.8)) return noise(x, y) < 3 ? TONE.stone.light : TONE.stone.main;
-    return null;
-  });
-  // Grove: lush grass with flowers.
-  terrain(7, (x, y) => {
-    if ((x === 4 && y === 4) || (x === 11 && y === 9) || (x === 6 && y === 11)) return [0xf0, 0xa0, 0xd0];
-    return noise(x, y) < 4 ? TONE.bloom.dark : [0x2a, 0x5a, 0x34];
-  });
+  for (let mask = 0; mask < 16; mask++) pathTile(c, (PATH_FIRST + mask) * 16, mask);
   // Glowmire, a bog at night: cooler, bluer grass (the light map darkens it further), cobbles, and water with ripple lines.
   const BOG: Rgb = [0x2a, 0x40, 0x44];
   const BOG_DARK: Rgb = [0x22, 0x34, 0x3a];

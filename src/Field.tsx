@@ -1,7 +1,7 @@
 import { Entity, Layer, Sprite } from "@tsengine/runtime/jsx";
 
 import { useGame } from "./GameState.ts";
-import { TILE_FRAME } from "./rules/draw.ts";
+import { pathFrame, TILE_FRAME } from "./rules/draw.ts";
 import { COLS, mapOf, ROWS, TILE, tileKey, type MapId } from "./rules/map.ts";
 import { TYPES, type Type } from "./rules/types.ts";
 
@@ -13,23 +13,27 @@ interface Drawn {
 }
 
 /**
- * Every tile of a map's ground, in reading order, with the frame of `assets/tiles.png` it shows: grass (now and then a tuft, or reeds
- * at night) or the path (cobbles at night). Water and terrain are left out: each is drawn on a layer of its own (`waterOf`,
+ * Every tile of a map's ground, in reading order, with the frame of `assets/tiles.png` it shows: grass (now and then flowers, or
+ * reeds at night) or the path (a road joined to its neighbours, or cobbles at night). Water and terrain are left out: each is drawn on a layer of its own (`waterOf`,
  * `terrainOf`), through its shader.
  */
 function tilesOf(map: MapId): Drawn[] {
-  const { pathTiles, terrain, water, night } = mapOf(map);
+  const { pathTiles, terrain, water, night, path } = mapOf(map);
+  // The path runs off the edge at its two ends: the tiles just off the grid there count as road, so the road reaches the edge.
+  const ends = [path.points[0]!, path.points[path.points.length - 1]!].map((p) => tileKey(Math.floor(p.x / TILE), Math.floor(p.y / TILE)));
+  const road = (col: number, row: number) => pathTiles.has(tileKey(col, row)) || ends.includes(tileKey(col, row));
   const tiles: Drawn[] = [];
   for (let i = 0; i < COLS * ROWS; i++) {
     const col = i % COLS;
     const row = Math.floor(i / COLS);
     const key = tileKey(col, row);
     if (water.has(key) || terrain.has(key)) continue;
-    const tuft = (col * 7 + row * 13) % 5 === 0;
+    // Now and then a tuft of reeds at night; flowers, rarer, by day.
+    const tuft = night ? (col * 7 + row * 13) % 5 === 0 : (((col * 73856093) ^ (row * 19349663)) >>> 0) % 9 === 0;
     const frame = pathTiles.has(key)
       ? night
         ? TILE_FRAME.cobbles
-        : TILE_FRAME.path
+        : pathFrame(road(col, row - 1), road(col + 1, row), road(col, row + 1), road(col - 1, row))
       : night
           ? tuft
             ? TILE_FRAME.reeds
