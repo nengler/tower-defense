@@ -1,7 +1,5 @@
-import { Collider, Entity, Line, Shape, useMutable, useUpdate } from "@tsengine/runtime/jsx";
+import { Entity, Line, Shape, useMutable, useUpdate } from "@tsengine/runtime/jsx";
 
-import type { Aura, Blast } from "./battle.ts";
-import { fadeColor } from "./rules/draw.ts";
 import { MOVES, type MoveId } from "./rules/moves.ts";
 import { TYPE_COLOR } from "./rules/types.ts";
 
@@ -10,29 +8,25 @@ const SHOWN = 0.25;
 
 interface EffectProps {
   id: number;
-  kind: "blast" | "aura";
   move: MoveId;
   fromX: number;
   fromY: number;
   x: number;
   y: number;
+  /** The area it covered; 0 for a hit. */
   radius: number;
-  blast: Blast;
-  aura: Aura;
   /** It has been shown: take it away. */
   onDone: (id: number) => void;
 }
 
 /**
- * A move landing. For its first step it is a collider: a `blast` every enemy it touches decides about (see `Enemy`), or an `aura`
- * every ally it touches decides about (see `Creature`). Then it fades: a line from the creature to its target for a hit, a disc for
- * an area.
+ * A move landing, for the eye only (the move itself was sent to what it landed on): a line from the creature to its target for a
+ * hit, a disc for an area, fading out.
  */
-export function Effect({ id, kind, move, fromX, fromY, x, y, radius, blast, aura, onDone }: EffectProps) {
+export function Effect({ id, move, fromX, fromY, x, y, radius, onDone }: EffectProps) {
   const s = useMutable({ t: 0 });
   const tint = TYPE_COLOR[MOVES[move].type];
-  // The collider's box covers the circle, and the box of an enemy whose middle is in it.
-  const box = radius + 6;
+  const left = Math.max(0, 1 - s.t / SHOWN);
 
   useUpdate((dt) => {
     if (s.t >= SHOWN) {
@@ -45,22 +39,9 @@ export function Effect({ id, kind, move, fromX, fromY, x, y, radius, blast, aura
   return (
     <Entity>
       {radius > 0 ? (
-        <Shape
-          kind="circle"
-          width={radius * 2}
-          height={radius * 2}
-          x={x - radius}
-          y={y - radius}
-          color={fadeColor(tint, 0.45, s.t, SHOWN)}
-        />
+        <Shape kind="circle" width={radius * 2} height={radius * 2} x={x - radius} y={y - radius} color={tint} opacity={0.45 * left} />
       ) : (
-        <Line x={fromX} y={fromY} x2={x} y2={y} color={fadeColor(tint, 1, s.t, SHOWN)} />
-      )}
-      {s.t === 0 && kind === "blast" && (
-        <Collider width={box * 2} height={box * 2} x={x - box} y={y - box} tag="blast" layer="blast" hits={["enemy"]} data={blast} />
-      )}
-      {s.t === 0 && kind === "aura" && (
-        <Collider width={box * 2} height={box * 2} x={x - box} y={y - box} tag="aura" layer="aura" hits={["ally"]} data={aura} />
+        <Line x={fromX} y={fromY} x2={x} y2={y} color={tint} opacity={left} />
       )}
     </Entity>
   );

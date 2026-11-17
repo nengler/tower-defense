@@ -13,13 +13,11 @@ export interface Foe {
   readonly maxHp: number;
 }
 
-/** What a move lands as: everything an enemy needs to work out what it takes. */
+/**
+ * What a move lands as: everything an enemy needs to work out what it takes. Which enemies it lands on is the creature's choice
+ * (`send("enemy", …)`: the one it aimed at, or every one whose middle is in the area), so a blast says nothing of where.
+ */
 export interface Blast {
-  /** The one enemy a hit lands on, by id; -1 for an area that lands on everything within `radius` of (x, y). */
-  readonly target: number;
-  readonly x: number;
-  readonly y: number;
-  readonly radius: number;
   /** The creature that used the move (its XP), and the types that decide the type factor. */
   readonly from: number;
   readonly moveType: Type;
@@ -42,10 +40,6 @@ export interface Blast {
 
 /** A blast that only damages: for tests, and as the base of a move's. */
 export const PLAIN_BLAST: Blast = {
-  target: -1,
-  x: 0,
-  y: 0,
-  radius: 0,
   from: -1,
   moveType: "stone",
   userType: "stone",
@@ -61,35 +55,26 @@ export const PLAIN_BLAST: Blast = {
   consumes: false,
 };
 
-/** A buff landing: every ally whose middle is within `radius` of (x, y) is hasted. */
+/** A buff landing on an ally (every ally whose middle is in its area, chosen by the creature that used it). */
 export interface Aura {
-  readonly x: number;
-  readonly y: number;
-  readonly radius: number;
   /** Moves this much faster (0.3 = 30 % shorter animations and cooldowns), for `hasteFor` seconds. */
   readonly haste: number;
   readonly hasteFor: number;
 }
 
-/** An aura that does nothing: what a blast effect carries in its `aura`. */
-export const NO_AURA: Aura = { x: 0, y: 0, radius: 0, haste: 0, hasteFor: 0 };
-
 /**
- * What a creature's move puts on the field when its animation ends: a blast for enemies (`kind: "blast"`), or an aura for allies
- * (`kind: "aura"`). The one it is not carries the plain value (`PLAIN_BLAST`, `NO_AURA`).
+ * What a creature's move shows when its animation ends: a line from the creature to where it lands for a hit, a disc for an area.
+ * Only for the eye: the blast or aura itself is sent to the enemies or allies it lands on.
  */
 export interface Effect {
-  readonly kind: "blast" | "aura";
   readonly move: MoveId;
   /** Where the creature that used it stands. */
   readonly fromX: number;
   readonly fromY: number;
-  /** Where it lands, and the area it covers (0 for a hit): its blast's or its aura's. */
+  /** Where it lands, and the area it covers (0 for a hit). */
   readonly x: number;
   readonly y: number;
   readonly radius: number;
-  readonly blast: Blast;
-  readonly aura: Aura;
 }
 
 /** An effect in `Play`'s list. */
@@ -97,16 +82,19 @@ export interface Placed extends Effect {
   readonly id: number;
 }
 
-/** What the colliders carry (`<Collider data>`), by tag. */
 declare global {
+  /** What the colliders carry (`<Collider data>`), by tag: what `nearby` sees of each. */
   interface ColliderData {
-    /** A creature, as a buff sees it. */
-    ally: { readonly id: number };
-    /** A buff landing. */
-    aura: Aura;
+    /** A creature, as a buff sees it: who and where. */
+    ally: { readonly id: number; readonly x: number; readonly y: number };
     /** An enemy, as a creature sees it: who it is, how far along the path, where, and whether it still stands. */
     enemy: { readonly id: number; readonly dist: number; readonly x: number; readonly y: number; readonly hp: number };
-    /** A move landing. */
-    blast: Blast;
+  }
+  /** What can be sent to each tag (`send(tag, …)`, received by `<Collider onReceive>`). */
+  interface ColliderMessages {
+    /** A move landing on an enemy. */
+    enemy: Blast;
+    /** A buff landing on an ally. */
+    ally: Aura;
   }
 }

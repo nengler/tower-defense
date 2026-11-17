@@ -1,4 +1,4 @@
-import { after, AnimatedSprite, cancelTimers, Collider, Entity, Shape, useMutable, useUpdate } from "@tsengine/runtime/jsx";
+import { after, AnimatedSprite, cancelTimer, Collider, Entity, Shape, useMutable, useUpdate } from "@tsengine/runtime/jsx";
 
 import { afterArmor, ENEMIES, type EnemyKind } from "./rules/enemies.ts";
 import { ENEMY_ANIMATIONS } from "./rules/draw.ts";
@@ -21,8 +21,8 @@ interface EnemyProps {
 }
 
 /**
- * One enemy. It walks the path at its kind's speed, and takes what lands on it: a `blast` collider aimed at it, or an area its
- * middle is in. What a blast leaves stays on it as state that counts down: stunned (it stops), slowed, burning (damage over time)
+ * One enemy. It walks the path at its kind's speed, and takes the blasts sent to it (`onReceive`): a creature sends a move to the
+ * enemy it aimed at, or to every enemy whose middle is in its area. What a blast leaves stays on it as state that counts down: stunned (it stops), slowed, burning (damage over time)
  * and soaked. A combo move does more against an enemy with the status it plays off (soaked for Volt moves, burning, stunned,
  * slowed), and a soak is used up by it. An armoured kind takes its armour off every hit (not a burn). It draws its kind's walk
  * (white for a moment when hit), a health bar once hurt, and a mark for each status. Creatures find it by its collider, whose data
@@ -40,8 +40,9 @@ export function Enemy({ id, kind, maxHp, onKilled, onLeaked, onDamaged, onHit }:
     burnFor: 0,
     burnFrom: -1,
     soak: 0,
-    /** White for a moment after a hit: only for the eye, so a timer turns it off. */
+    /** White for a moment after a hit: only for the eye, so a timer turns it off (that timer's id, 0 for none). */
     flash: false,
+    flashTimer: 0,
   });
   const at = pathAt(PATH, s.dist);
   const half = info.size / 2;
@@ -116,13 +117,8 @@ export function Enemy({ id, kind, maxHp, onKilled, onLeaked, onDamaged, onHit }:
         x={-half}
         y={-half}
         tag="enemy"
-        layer="enemy"
-        hits={["blast"]}
         data={{ id, dist: s.dist, x: at.x, y: at.y, hp: s.hp }}
-        onCollisionEnter={(other) => {
-          if (other.tag !== "blast") return;
-          const b = other.data;
-          if (b.target >= 0 ? b.target !== id : Math.hypot(b.x - at.x, b.y - at.y) > b.radius) return;
+        onReceive={(b) => {
           const factor = typeFactor(b.moveType, b.userType, info.type);
           // A combo: more against an enemy with the status it plays off, which it may use up.
           const combo = b.bonusVs !== "" && has(b.bonusVs);
@@ -131,9 +127,9 @@ export function Enemy({ id, kind, maxHp, onKilled, onLeaked, onDamaged, onHit }:
             const amount = afterArmor(kind, b.damage * factor * (combo ? b.bonus : 1));
             hurt(b.from, amount);
             onHit(at.x, at.y, amount, combo);
-            cancelTimers();
+            cancelTimer(s.flashTimer);
             s.flash = true;
-            after(0.08, () => {
+            s.flashTimer = after(0.08, () => {
               s.flash = false;
             });
           }

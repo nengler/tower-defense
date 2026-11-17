@@ -3,7 +3,7 @@ import { describe, it, mock } from "node:test";
 
 import { render } from "@tsengine/testing";
 
-import type { Effect } from "../src/battle.ts";
+import type { Aura, Blast, Effect } from "../src/battle.ts";
 import { Creature } from "../generated/Creature.ts";
 import type { MoveId } from "../src/rules/moves.ts";
 import { scaled } from "../src/rules/scaled.ts";
@@ -13,14 +13,32 @@ const STEPS_A_SECOND = 60;
 const X = 100;
 const Y = 60;
 
-/** A creature alone at (X, Y), and a way to put an enemy near it (its collider, with what it says about itself). */
-function creature(equipped: readonly MoveId[], species: "emberling" | "puddlepup" | "voltkit" = "voltkit", level = 1) {
+/**
+ * A creature alone at (X, Y), rendered with collisions, and ways to put an enemy or another ally near it (a collider saying what it
+ * is, which records what the creature sends it).
+ */
+function creature(equipped: readonly MoveId[], species: "emberling" | "puddlepup" | "voltkit" | "sproutling" = "voltkit", level = 1) {
   const onUse = mock.fn((_e: Effect) => {});
-  const t = render(Creature, { id: 3, species, level, equipped, x: X, y: Y, selected: false, onUse });
+  const t = render(Creature, { id: 3, species, level, equipped, x: X, y: Y, selected: false, onUse }, { collisions: true });
+  /** What was sent to each placed collider, by its id. */
+  const sent = new Map<number, unknown[]>();
+  const record = (id: number) => {
+    sent.set(id, []);
+    return (value: unknown) => sent.get(id)!.push(value);
+  };
   const near = (id: number, dx: number, dist = 50, hp = 10) =>
-    t.place({ tag: "enemy", data: { id, dist, x: X + dx, y: Y, hp }, x: X + dx - 4, y: Y - 4, width: 8, height: 8 });
+    t.place({ tag: "enemy", data: { id, dist, x: X + dx, y: Y, hp }, x: X + dx - 4, y: Y - 4, width: 8, height: 8, onReceive: record(id) });
+  const ally = (id: number, dx: number) =>
+    t.place({ tag: "ally", data: { id, x: X + dx, y: Y }, x: X + dx - 5, y: Y - 5, width: 10, height: 10, onReceive: record(id) });
   const used = () => onUse.mock.calls.map((c) => c.arguments[0]!);
-  return { t, onUse, near, used };
+  const blasts = (id: number) => (sent.get(id) ?? []) as Blast[];
+  const auras = (id: number) => (sent.get(id) ?? []) as Aura[];
+  return { t, onUse, near, ally, used, blasts, auras };
+}
+
+/** Send the creature (at X, Y) an aura, as an ally's buff would. */
+function receive(t: ReturnType<typeof creature>["t"], value: Aura) {
+  t.send("ally", { x: X, y: Y, radius: 1 }, value);
 }
 
 const fields = (t: { state(): Record<string, unknown> }) => t.state().s as { busy: string; left: number; cooldowns: Record<string, number> };
@@ -30,26 +48,30 @@ const secondsToSteps = (seconds: number) => Math.ceil(seconds * STEPS_A_SECOND) 
 
 describe("a creature", () => {
   it("a move just equipped (or placed) starts on its full cooldown, then is used on an enemy in reach and lands after its animation", () => {
-    const { t, near, used } = creature(["zap"]);
+    const { t, near, used, blasts } = creature(["zap"]);
     near(1, 20);
+    near(2, 25, 10);
     const zap = scaled("zap", statsAt("voltkit", 1));
     t.step(secondsToSteps(zap.cooldown) - 2);
     assert.equal(fields(t).busy, "", "still cooling down");
     t.step(2);
     assert.equal(fields(t).busy, "zap");
     assert.equal(used().length, 0, "nothing lands before the animation ends");
+    assert.equal(blasts(1).length, 0);
     t.step(secondsToSteps(zap.animation));
     assert.equal(used().length, 1);
     const e = used()[0]!;
-    assert.equal(e.kind, "blast");
-    assert.equal(e.blast.target, 1);
-    assert.equal(e.blast.from, 3);
-    assert.equal(e.blast.moveType, "volt");
-    assert.equal(e.blast.userType, "volt");
-    assert.ok(Math.abs(e.blast.damage - zap.damage) < 1e-9, "damage is the move's, scaled by the creature's attack");
-    assert.equal(e.blast.bonusVs, "soaked");
-    assert.equal(e.blast.bonus, 2);
-    assert.equal(e.blast.consumes, true);
+    assert.deepEqual([e.x, e.y, e.radius], [X + 20, Y, 0], "shown as a line to its target");
+    assert.equal(blasts(1).length, 1, "sent to the enemy furthest along the path");
+    assert.equal(blasts(2).length, 0, "and to no other");
+    const b = blasts(1)[0]!;
+    assert.equal(b.from, 3);
+    assert.equal(b.moveType, "volt");
+    assert.equal(b.userType, "volt");
+    assert.ok(Math.abs(b.damage - zap.damage) < 1e-9, "damage is the move's, scaled by the creature's attack");
+    assert.equal(b.bonusVs, "soaked");
+    assert.equal(b.bonus, 2);
+    assert.equal(b.consumes, true);
   });
 
   it("does nothing with no enemy in reach, and waits with the move ready", () => {
@@ -103,49 +125,50 @@ describe("a creature", () => {
     assert.ok(fields(t).cooldowns.zap! > zap.cooldown - 0.05, `cooldown ${fields(t).cooldowns.zap}`);
   });
 
-  it("a buff is used as soon as it is ready, with no enemy anywhere, and lands as an aura on itself", () => {
-    const { t, used } = creature(["rally"], "puddlepup");
+  it("a buff is used as soon as it is ready, with no enemy anywhere, and lands on itself and the allies whose middle is in it", () => {
+    const { t, ally, used, auras } = creature(["rally"], "puddlepup");
     const rally = scaled("rally", statsAt("puddlepup", 1));
+    ally(5, rally.radius - 2);
+    ally(6, rally.radius + 3);
     t.step(secondsToSteps(rally.cooldown + rally.animation) + 1);
     assert.equal(used().length, 1);
     const e = used()[0]!;
-    assert.equal(e.kind, "aura");
-    assert.equal(e.aura.x, X);
-    assert.equal(e.aura.haste, 0.3);
-    assert.ok(Math.abs(e.aura.radius - rally.radius) < 1e-9);
+    assert.equal(e.x, X);
+    assert.ok(Math.abs(e.radius - rally.radius) < 1e-9);
+    assert.equal((t.state().s as { haste: number }).haste, 0.3, "it hastes itself");
+    assert.equal(auras(5).length, 1);
+    assert.equal(auras(5)[0]!.haste, 0.3);
+    assert.equal(auras(6).length, 0, "an ally whose box reaches the area but whose middle is outside it is not hasted");
   });
 
-  it("a pulse needs an enemy within its radius, and lands around the creature", () => {
-    const { t, near, used } = creature(["undertow"], "puddlepup");
+  it("a pulse needs an enemy within its radius, and lands around the creature on every enemy whose middle is in it", () => {
+    const { t, near, used, blasts } = creature(["undertow"], "puddlepup");
     const u = scaled("undertow", statsAt("puddlepup", 1));
-    near(1, u.radius + 10);
+    near(1, u.radius + 3);
     t.step(secondsToSteps(u.cooldown + u.animation) + 5);
-    assert.equal(used().length, 0, "nothing within the radius");
+    assert.equal(used().length, 0, "nothing within the radius (enemy 1's box reaches it, its middle does not)");
     near(2, u.radius - 5);
+    near(4, -(u.radius - 8));
     t.step(secondsToSteps(u.animation) + 1);
     assert.equal(used().length, 1);
     const e = used()[0]!;
-    assert.equal(e.blast.x, X);
-    assert.equal(e.blast.target, -1);
-    assert.equal(e.blast.slow, 0.4);
-    assert.equal(e.blast.soak, 4);
+    assert.deepEqual([e.x, e.y], [X, Y]);
+    assert.equal(blasts(1).length, 0);
+    assert.equal(blasts(2).length, 1);
+    assert.equal(blasts(4).length, 1);
+    assert.equal(blasts(2)[0]!.slow, 0.4);
+    assert.equal(blasts(2)[0]!.soak, 4);
   });
 
   it("a haste makes its cooldowns run faster while it lasts", () => {
     const plain = creature(["zap"]);
     plain.t.step(10);
     const hasted = creature(["zap"]);
-    hasted.t.collide("ally", { tag: "aura", data: { x: X, y: Y, radius: 40, haste: 0.5, hasteFor: 5 } });
+    receive(hasted.t, { haste: 0.5, hasteFor: 5 });
     hasted.t.step(10);
     const zap = scaled("zap", statsAt("voltkit", 1));
     const spentPlain = zap.cooldown - fields(plain.t).cooldowns.zap!;
     const spentHasted = zap.cooldown - fields(hasted.t).cooldowns.zap!;
     assert.ok(Math.abs(spentHasted - 2 * spentPlain) < 1e-6, `plain ${spentPlain}, hasted ${spentHasted}`);
-  });
-
-  it("an aura it is outside of does not haste it", () => {
-    const { t } = creature(["zap"]);
-    t.collide("ally", { tag: "aura", data: { x: X + 100, y: Y, radius: 40, haste: 0.5, hasteFor: 5 } });
-    assert.equal((t.state().s as { hasteFor: number }).hasteFor, 0);
   });
 });

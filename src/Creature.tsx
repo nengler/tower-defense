@@ -1,6 +1,6 @@
-import { AnimatedSprite, Collider, Entity, Shape, useBody, useMutable, useUpdate } from "@tsengine/runtime/jsx";
+import { AnimatedSprite, Collider, Entity, nearby, send, Shape, useMutable, useUpdate } from "@tsengine/runtime/jsx";
 
-import { NO_AURA, PLAIN_BLAST, type Effect } from "./battle.ts";
+import { PLAIN_BLAST, type Aura, type Effect } from "./battle.ts";
 import { CREATURE_ANIMATIONS, pipFill, withCooldown } from "./rules/draw.ts";
 import { comboOf, MOVES, type MoveId } from "./rules/moves.ts";
 import { scaled } from "./rules/scaled.ts";
@@ -31,7 +31,8 @@ interface CreatureProps {
  * A creature on the field. Each equipped move has its own cooldown, which starts full when the move is equipped (or the creature
  * placed), so swapping is never a way to skip one. It uses one move at a time: when it is not busy, it starts the first ready move,
  * in equip order, that has a use (an enemy in reach; a buff always has one), and is busy for that move's animation, at the end of
- * which the move lands (`onUse`). A haste on it (from an ally's buff) makes its animations and cooldowns run faster.
+ * which the move lands: it is sent to the enemies (or, for a buff, the allies) it lands on, and shown (`onUse`). A haste on it
+ * (from a buff, its own or an ally's) makes its animations and cooldowns run faster.
  *
  * It draws its species' sprite (an idle bob), a ring while it is using a move, and under it one pip per equipped move that fills as the
  * move's cooldown runs.
@@ -49,12 +50,15 @@ export function Creature({ id, species, level, equipped, x, y, selected, onUse }
     haste: 0,
     hasteFor: 0,
   });
-  const { overlapping } = useBody({ x: x - LOOK, y: y - LOOK, width: LOOK * 2, height: LOOK * 2 });
-
   /** The move as this creature uses it. */
   const use = (move: MoveId) => scaled(move, stats);
   /** The enemies around it, as their colliders describe them. */
-  const enemies = () => overlapping("enemy").map((e) => e.data);
+  const enemies = () => nearby("enemy", x, y, LOOK).map((e) => e.data);
+  /** A haste landing on it: the stronger of this and one still running, for the longer time. */
+  const hasten = (a: Aura) => {
+    s.haste = Math.max(s.hasteFor > 0 ? s.haste : 0, a.haste);
+    s.hasteFor = Math.max(s.hasteFor, a.hasteFor);
+  };
 
   /** Has this move something to do now. */
   const hasUse = (move: MoveId) => {
@@ -64,25 +68,29 @@ export function Creature({ id, species, level, equipped, x, y, selected, onUse }
     return pickTarget(x, y, use(move).reach, enemies()) !== null;
   };
 
-  /** The move's animation ended: put it on the field. A hit or splash with nothing left in reach does nothing. */
+  /**
+   * The move's animation ended: send it to what it lands on, and show it. A hit lands on the enemy it was aimed at if that one is
+   * still in reach, else the best one now; an area on every enemy (a buff: every ally, itself included) whose middle is in it. A hit
+   * or splash with nothing left in reach does nothing.
+   */
   const land = (move: MoveId) => {
     const m = MOVES[move];
     const u = use(move);
     if (m.shape === "buff") {
-      const aura = { x, y, radius: u.radius, haste: m.effects.haste ?? 0, hasteFor: m.effects.hasteFor ?? 0 };
-      onUse({ kind: "aura", move, fromX: x, fromY: y, x, y, radius: aura.radius, blast: PLAIN_BLAST, aura });
+      const aura = { haste: m.effects.haste ?? 0, hasteFor: m.effects.hasteFor ?? 0 };
+      // `nearby` leaves out its own collider: it takes its own buff here.
+      hasten(aura);
+      for (const ally of nearby("ally", x, y, u.radius)) if (Math.hypot(ally.data.x - x, ally.data.y - y) <= u.radius) send("ally", ally, aura);
+      onUse({ move, fromX: x, fromY: y, x, y, radius: u.radius });
       return;
     }
-    const seen = enemies();
-    const aimed = seen.find((e) => e.id === s.target && e.hp > 0 && Math.hypot(e.x - x, e.y - y) <= u.reach);
-    const target = m.shape === "pulse" ? null : (aimed ?? pickTarget(x, y, u.reach, seen));
+    const seen = nearby("enemy", x, y, LOOK);
+    const data = seen.map((e) => e.data);
+    const aimed = data.find((e) => e.id === s.target && e.hp > 0 && Math.hypot(e.x - x, e.y - y) <= u.reach);
+    const target = m.shape === "pulse" ? null : (aimed ?? pickTarget(x, y, u.reach, data));
     if (m.shape !== "pulse" && target === null) return;
     const blast = {
       ...PLAIN_BLAST,
-      target: m.shape === "hit" && target !== null ? target.id : -1,
-      x: target === null ? x : target.x,
-      y: target === null ? y : target.y,
-      radius: m.shape === "hit" ? 0 : u.radius,
       from: id,
       moveType: m.type,
       userType: type,
@@ -95,7 +103,15 @@ export function Creature({ id, species, level, equipped, x, y, selected, onUse }
       soak: m.effects.soak ?? 0,
       ...comboOf(move),
     };
-    onUse({ kind: "blast", move, fromX: x, fromY: y, x: blast.x, y: blast.y, radius: blast.radius, blast, aura: NO_AURA });
+    const at = target === null ? { x, y } : { x: target.x, y: target.y };
+    const radius = m.shape === "hit" ? 0 : u.radius;
+    if (m.shape === "hit") {
+      const hit = seen.find((e) => e.data.id === target?.id);
+      if (hit !== undefined) send("enemy", hit, blast);
+    } else {
+      for (const e of nearby("enemy", at.x, at.y, radius)) if (Math.hypot(e.data.x - at.x, e.data.y - at.y) <= radius) send("enemy", e, blast);
+    }
+    onUse({ move, fromX: x, fromY: y, x: at.x, y: at.y, radius });
   };
 
   useUpdate((dt) => {
@@ -133,7 +149,15 @@ export function Creature({ id, species, level, equipped, x, y, selected, onUse }
     <Entity x={x} y={y}>
       {selected && <Shape kind="rect" width={SIZE + 4} height={SIZE + 4} x={-SIZE / 2 - 2} y={-SIZE / 2 - 3} color="#ffffff" />}
       {s.busy !== "" && (
-        <Shape kind="circle" width={SIZE + 6} height={SIZE + 6} x={-SIZE / 2 - 3} y={-SIZE / 2 - 4} color={`${TYPE_COLOR[MOVES[s.busy].type]}80`} />
+        <Shape
+          kind="circle"
+          width={SIZE + 6}
+          height={SIZE + 6}
+          x={-SIZE / 2 - 3}
+          y={-SIZE / 2 - 4}
+          color={TYPE_COLOR[MOVES[s.busy].type]}
+          opacity={0.5}
+        />
       )}
       <AnimatedSprite
         sheet="creatures.png"
@@ -156,23 +180,7 @@ export function Creature({ id, species, level, equipped, x, y, selected, onUse }
           />
         </Entity>
       ))}
-      <Collider
-        width={SIZE}
-        height={SIZE}
-        x={-SIZE / 2}
-        y={-SIZE / 2}
-        tag="ally"
-        layer="ally"
-        hits={["aura"]}
-        data={{ id }}
-        onCollisionEnter={(other) => {
-          if (other.tag !== "aura") return;
-          const a = other.data;
-          if (Math.hypot(a.x - x, a.y - y) > a.radius) return;
-          s.haste = Math.max(s.hasteFor > 0 ? s.haste : 0, a.haste);
-          s.hasteFor = Math.max(s.hasteFor, a.hasteFor);
-        }}
-      />
+      <Collider width={SIZE} height={SIZE} x={-SIZE / 2} y={-SIZE / 2} tag="ally" data={{ id, x, y }} onReceive={(a) => hasten(a)} />
     </Entity>
   );
 }
