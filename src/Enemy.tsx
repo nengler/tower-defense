@@ -166,12 +166,12 @@ export function Enemy({ id, kind, maxHp, startDist, pace, onKilled, onLeaked, on
       {hidden && <Shape kind="rect" width={8} height={3} x={-4} y={1} color="#4e4232" />}
       <AnimatedSprite
         sheet="enemies.png"
-        frameWidth={12}
-        frameHeight={12}
+        frameWidth={16}
+        frameHeight={16}
         animations={ENEMY_ANIMATIONS}
         animation={kind}
-        originX={6}
-        originY={6}
+        originX={8}
+        originY={9}
         scaleX={scale}
         scaleY={scale}
         flash={s.flash ? 0.8 : 0}

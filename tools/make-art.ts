@@ -4,7 +4,7 @@
  *
  * - `creatures.png`: 12 × 12 frames, two to a row (an idle bob), one row a species in `SPECIES_IDS` order, then one a form in
  *   `FORM_IDS` order (each form is its species drawn again, with something added).
- * - `enemies.png`: 12 × 12 frames, two to a row (a walk), one row a kind in `ENEMY_KINDS` order.
+ * - `enemies.png` is not drawn here: `tools/make-enemies.ts` lays it out from the Tiny Creatures sprites.
  * - `tiles.png`: 16 × 16 tiles in a row: grass, grass with a tuft, path, then a terrain tile per type in `TYPES` order (ash, pool,
  *   pylon, rock, grove); then Glowmire's grass, grass with reeds, cobbled path and water, and a lantern and a glow-mushroom (on a clear
  *   background, drawn over the grass).
@@ -17,7 +17,6 @@ import { fileURLToPath } from "node:url";
 
 import { encodePng } from "@tsengine/player-node";
 
-import { ENEMY_KINDS } from "../src/rules/enemies.ts";
 import { FORM_IDS, FORMS, SPECIES_IDS } from "../src/rules/species.ts";
 
 const assets = join(dirname(fileURLToPath(import.meta.url)), "../assets");
@@ -210,134 +209,6 @@ const FORM_EXTRAS: Record<(typeof FORM_IDS)[number], Draw> = {
   },
 };
 
-/** Each enemy kind, likewise; `frame` 1 is the other step of the walk. */
-const ENEMIES: Record<(typeof ENEMY_KINDS)[number], Draw> = {
-  crawler: (c, ox, oy, f) => {
-    const t = TONE.bloom;
-    // A beetle with six legs taking turns.
-    for (const x of [3, 6, 9]) c.set(ox + x, oy + 10 - ((x / 3 + f) % 2), t.dark);
-    c.disc(ox + 6, oy + 6.5, 4, t.dark);
-    c.disc(ox + 6, oy + 6, 3.4, t.main);
-    c.rect(ox + 6, oy + 3, 1, 6, t.dark);
-    c.set(ox + 9, oy + 5, INK);
-  },
-  skitter: (c, ox, oy, f) => {
-    const t = TONE.tide;
-    // A thin runner on long legs.
-    c.disc(ox + 6, oy + 5, 2.6, t.dark);
-    c.disc(ox + 6, oy + 4.8, 2.1, t.main);
-    c.rect(ox + 4 + f, oy + 7, 1, 4, t.dark);
-    c.rect(ox + 8 - f, oy + 7, 1, 4, t.dark);
-    c.set(ox + 7, oy + 4, INK);
-  },
-  mite: (c, ox, oy, f) => {
-    const t = TONE.ember;
-    // A speck with legs.
-    c.disc(ox + 6, oy + 6, 2, t.main);
-    c.set(ox + 3 + f, oy + 8, t.dark);
-    c.set(ox + 9 - f, oy + 8, t.dark);
-    c.set(ox + 7, oy + 5, INK);
-  },
-  shell: (c, ox, oy, f) => {
-    const t = TONE.stone;
-    // An armoured dome with plates, on stubby feet.
-    c.rect(ox + 3 + f, oy + 9, 2, 2, t.dark);
-    c.rect(ox + 7 - f, oy + 9, 2, 2, t.dark);
-    c.disc(ox + 6, oy + 6, 5, t.dark);
-    c.disc(ox + 6, oy + 5.6, 4.4, t.main);
-    c.rect(ox + 2, oy + 6, 9, 1, t.dark);
-    c.rect(ox + 6, oy + 2, 1, 4, t.dark);
-    c.disc(ox + 4.5, oy + 4, 1, t.light);
-    c.set(ox + 10, oy + 7, INK);
-  },
-  sprinter: (c, ox, oy, f) => {
-    const t = TONE.volt;
-    // A lean dart, streaks behind it.
-    c.disc(ox + 7, oy + 6, 2.5, t.dark);
-    c.disc(ox + 7, oy + 5.8, 2, t.main);
-    c.rect(ox + 1, oy + 5, 3, 1, t.light);
-    c.rect(ox + 2 + f, oy + 7, 2, 1, t.light);
-    c.set(ox + 6 + f, oy + 9, t.dark);
-    c.set(ox + 8 - f, oy + 9, t.dark);
-    c.set(ox + 8, oy + 5, INK);
-  },
-  cleanser: (c, ox, oy, f) => {
-    const t = TONE.tide;
-    // A jelly with a ring of foam, its fringe swaying.
-    c.disc(ox + 6, oy + 5, 3.6, t.dark);
-    c.disc(ox + 6, oy + 4.6, 3, t.light);
-    for (const x of [3, 5, 7, 9]) c.rect(ox + x, oy + 8, 1, 2 + ((x + f) % 2), t.main);
-    c.set(ox + 5, oy + 4, INK);
-    c.set(ox + 7, oy + 4, INK);
-  },
-  brood: (c, ox, oy, f) => {
-    const t = TONE.ember;
-    // A sac full of mites.
-    c.disc(ox + 6, oy + 6, 4.5, t.dark);
-    c.disc(ox + 6, oy + 5.6, 3.9, t.main);
-    for (const [x, y] of [[4, 4], [7, 5], [5, 7], [8, 7]] as const) c.set(ox + x + f * ((x + y) % 2), oy + y, t.light);
-    c.set(ox + 3 + f, oy + 11, t.dark);
-    c.set(ox + 9 - f, oy + 11, t.dark);
-  },
-  burrower: (c, ox, oy, f) => {
-    const t = TONE.stone;
-    // A mole with big claws.
-    c.disc(ox + 6, oy + 6.5, 3.8, t.dark);
-    c.disc(ox + 6, oy + 6, 3.2, t.main);
-    c.rect(ox + 9, oy + 8 - f, 2, 2, t.light);
-    c.rect(ox + 1, oy + 8 + f - 1, 2, 2, t.light);
-    c.set(ox + 8, oy + 5, INK);
-    c.set(ox + 10, oy + 6, [0xf0, 0xa0, 0xa0]);
-  },
-  jammer: (c, ox, oy, f) => {
-    const t = TONE.volt;
-    // A box on legs with an antenna that blinks.
-    c.rect(ox + 3, oy + 4, 6, 5, t.dark);
-    c.rect(ox + 4, oy + 5, 4, 3, t.main);
-    c.rect(ox + 6, oy + 1, 1, 3, INK);
-    c.set(ox + 6, oy + 0, f ? WHITE : t.light);
-    c.set(ox + 4 + f, oy + 10, t.dark);
-    c.set(ox + 7 - f, oy + 10, t.dark);
-    c.set(ox + 7, oy + 6, INK);
-  },
-  shepherd: (c, ox, oy, f) => {
-    const t = TONE.bloom;
-    // A woolly walker with a crook.
-    c.disc(ox + 6, oy + 6, 4, t.light);
-    c.disc(ox + 5, oy + 5, 2, WHITE);
-    c.disc(ox + 9, oy + 5, 1.6, t.dark);
-    c.set(ox + 10, oy + 5, INK);
-    c.rect(ox + 1, oy + 2, 1, 7, t.dark);
-    c.set(ox + 2, oy + 2, t.dark);
-    c.set(ox + 4 + f, oy + 10, t.dark);
-    c.set(ox + 8 - f, oy + 10, t.dark);
-  },
-  mosshorn: (c, ox, oy, f) => {
-    const t = TONE.stone;
-    // A horned beast with moss on its back.
-    c.disc(ox + 6, oy + 6.5, 5, t.dark);
-    c.disc(ox + 6, oy + 6, 4.4, t.main);
-    c.rect(ox + 3, oy + 2, 5, 2, TONE.bloom.main);
-    c.set(ox + 4, oy + 1, TONE.bloom.light);
-    c.rect(ox + 10, oy + 3, 1, 3, WHITE);
-    c.set(ox + 11, oy + 2, WHITE);
-    c.set(ox + 9, oy + 6, INK);
-    c.rect(ox + 3 + f, oy + 10, 2, 2, t.dark);
-    c.rect(ox + 7 - f, oy + 10, 2, 2, t.dark);
-  },
-  prism: (c, ox, oy, f) => {
-    // A crystal with a facet of every type.
-    const order = [TONE.ember, TONE.tide, TONE.volt, TONE.stone, TONE.bloom];
-    for (let y = 0; y < 11; y++) {
-      const w = 5 - Math.abs(5 - y);
-      for (let x = -w; x <= w; x++) c.set(ox + 6 + x, oy + y + 0.5, order[(Math.abs(x) + y + f) % 5]!.main);
-    }
-    c.set(ox + 6, oy + 2, WHITE);
-    c.set(ox + 5, oy + 5, INK);
-    c.set(ox + 7, oy + 5, INK);
-  },
-};
-
 function sheet(name: string, rows: readonly Draw[]): void {
   const c = new Canvas(24, rows.length * 12);
   rows.forEach((draw, row) => {
@@ -486,9 +357,5 @@ sheet("creatures.png", [
     FORM_EXTRAS[id](c, ox, oy, f);
   }),
 ]);
-sheet(
-  "enemies.png",
-  ENEMY_KINDS.map((k) => ENEMIES[k])
-);
 tiles();
-console.log(`wrote creatures.png, enemies.png and tiles.png to ${assets}`);
+console.log(`wrote creatures.png and tiles.png to ${assets}`);

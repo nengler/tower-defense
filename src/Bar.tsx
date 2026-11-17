@@ -80,12 +80,14 @@ export function Bar({ lives, wave, active, canElite, onStartWave }: BarProps) {
                   <Entity x={6} y={6}>
                     <AnimatedSprite
                       sheet="enemies.png"
-                      frameWidth={12}
-                      frameHeight={12}
+                      frameWidth={16}
+                      frameHeight={16}
                       animations={ENEMY_ANIMATIONS}
                       animation={g.kind}
-                      originX={6}
-                      originY={6}
+                      originX={8}
+                      originY={8}
+                      scaleX={0.75}
+                      scaleY={0.75}
                     />
                   </Entity>
                 </Flex>

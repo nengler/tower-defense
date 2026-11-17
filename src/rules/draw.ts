@@ -42,7 +42,7 @@ export const CREATURE_ANIMATIONS = {
   elderbloom: { frames: "28-29", fps: 1.5 },
 } as const;
 
-/** Each enemy kind's walk in `assets/enemies.png` (rows in `ENEMY_KINDS` order). */
+/** Each enemy kind's walk (a hop) in `assets/enemies.png` (16 × 16 frames, rows in `ENEMY_KINDS` order; `tools/make-enemies.ts`). */
 export const ENEMY_ANIMATIONS = {
   crawler: { frames: "0-1", fps: 6 },
   skitter: { frames: "2-3", fps: 10 },
