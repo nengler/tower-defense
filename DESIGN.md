@@ -219,7 +219,7 @@ on a day plays the same run. It unlocks nothing.
 
 320 × 180. The field is a 20 × 9 grid of 16 px tiles (320 × 144) with the path drawn on it; the bottom 36 px is a bar with lives,
 the wave, and the start-wave button. Under each creature on the field, one pip per equipped move fills as its cooldown runs; dots
-over it while it settles, a yellow bar while jammed. Clicking a creature opens its card: level, its stats as bars (each as long as the highest any creature reaches, the terrain bonus a bright end), and its moves, which can be
+over it while it settles, a yellow bar while jammed. Clicking a creature opens its card: level, its stats (each named in full over a bar the card's width, filled out of the highest that stat can reach, as a Pokémon summary does; the terrain bonus a bright end), and its moves, which can be
 equipped, unequipped and reordered.
 
 **Moving.** The card's MOVE (PLACE for a creature on the bench, or the M key) puts the card away and marks every tile the creature
