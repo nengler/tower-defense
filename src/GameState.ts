@@ -46,6 +46,8 @@ export const useGame = createGameState(
     selected: -1,
     /** The selected creature is being placed or moved: its card is out of the way and a press on a tile puts it there. */
     moving: false,
+    /** The move whose numbers the selected creature's card shows, and whose reach the field rings around it, or "". */
+    inspected: "" as MoveId | "",
     nextCreature: 1,
     /** The creatures a milestone offers; empty while there is no milestone. */
     offer: [] as readonly SpeciesId[],
@@ -89,6 +91,7 @@ export const useGame = createGameState(
       s.nextCreature = 1;
       s.selected = -1;
       s.moving = false;
+      s.inspected = "";
       s.prompting = -1;
       s.elite = false;
       s.tier = Math.min(s.tier, s.unlocked);
@@ -150,6 +153,7 @@ export const useGame = createGameState(
       s.roster = [...s.roster, newCreature(s.nextCreature, species, masteryLevel(s.mastery[species]))];
       s.selected = s.nextCreature;
       s.moving = true;
+      s.inspected = "";
       s.nextCreature += 1;
       s.offer = [];
       sfx.play("pick");
@@ -197,22 +201,27 @@ export const useGame = createGameState(
     /** Select the creature at this place in the roster (the bar's order), if there is one. */
     choose(s, index: number) {
       const c = s.roster[index];
-      if (c !== undefined) s.selected = c.id;
+      if (c !== undefined && c.id !== s.selected) {
+        s.selected = c.id;
+        s.inspected = "";
+      }
       s.moving = false;
     },
     /** Select a creature (on the field or the bench); selecting the selected one again deselects it. */
     select(s, id: number) {
       s.selected = s.selected === id ? -1 : id;
       s.moving = false;
+      s.inspected = "";
     },
     /** Pick the selected creature up, to place it (from the bench) or move it (on the field): its card makes way for the field. */
     startMove(s) {
       if (s.selected >= 0) s.moving = true;
     },
     /**
-     * A tile was pressed. While a creature is being moved: on its own tile, the move is called off; on another creature's, the two
-     * trade places (`swap`); on a free tile, it goes there if it may (open ground, at most 5 on the field). Otherwise a creature on
-     * the tile is selected, and a free tile takes the selected creature, as above. The creature stays selected, its card back.
+     * A tile was pressed. While a creature is being moved (MOVE or PLACE on its card, or M): on its own tile, the move is called off;
+     * on another creature's, the two trade places (`swap`); on a free tile, it goes there if it may (open ground, at most 5 on the
+     * field), and stays selected, its card back. Otherwise a creature on the tile is selected, and a press anywhere else closes the
+     * card, as CLOSE does: a creature only moves when asked to.
      */
     tapTile(s, col: number, row: number) {
       const there = standingAt(s.roster, col, row);
@@ -224,11 +233,17 @@ export const useGame = createGameState(
         return;
       }
       if (there !== undefined) {
+        if (there.id !== s.selected) s.inspected = "";
         s.selected = there.id;
         s.moving = false;
         return;
       }
       if (s.selected < 0) return;
+      if (!s.moving) {
+        s.selected = -1;
+        s.inspected = "";
+        return;
+      }
       const before = s.roster;
       s.roster = place(s.roster, s.map, s.selected, col, row);
       if (s.roster !== before) {
@@ -256,6 +271,11 @@ export const useGame = createGameState(
     deselect(s) {
       s.selected = -1;
       s.moving = false;
+      s.inspected = "";
+    },
+    /** Show a move's numbers on the card and its reach on the field; pressing the same move again puts them away. */
+    inspect(s, move: MoveId) {
+      s.inspected = s.inspected === move ? "" : move;
     },
     /** A creature dealt damage: it earns that much XP. */
     gainXp(s, id: number, amount: number) {

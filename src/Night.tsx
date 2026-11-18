@@ -58,7 +58,7 @@ export function Night({ map, creatures, effects }: NightProps) {
   return (
     <Entity>
       <Layer shader="fog.glsl" params={[0.3]}>
-        <Shape kind="rect" width={320} height={FIELD_HEIGHT} color="#c8d0ff" opacity={0.06} />
+        <Shape kind="rect" width={320} height={180} color="#c8d0ff" opacity={0.06} />
       </Layer>
       <Lighting ambient="#464a80" shader="night.glsl" params={[6, 0.7]}>
         {lanterns.map((l) => (

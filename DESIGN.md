@@ -217,18 +217,27 @@ on a day plays the same run. It unlocks nothing.
 
 ## Screen
 
-320 × 180. The field is a 20 × 9 grid of 16 px tiles (320 × 144) with the path drawn on it; the bottom 36 px is a bar with lives,
-the wave, and the start-wave button. Under each creature on the field, one pip per equipped move fills as its cooldown runs; dots
-over it while it settles, a yellow bar while jammed. Clicking a creature opens its card: level, its stats (each named in full over a bar the card's width, filled out of the highest that stat can reach, as a Pokémon summary does; the terrain bonus a bright end), and its moves, which can be
-equipped, unequipped and reordered.
+320 × 180. The field is a 20 × 9 grid of 16 px tiles (320 × 144) with the path drawn on it; the ground goes on under it to the
+bottom of the screen, and the bar sits over those 36 px as separate see-through panels: lives and the wave on the left, a chip for
+each creature owned in the middle (the creature itself, bright on the field and faded on the bench, white-edged while selected,
+yellow-edged with a `!` while a choice waits, and how many are on the field of the 5), and the start-wave button on the right. Beside
+each creature on the field, one bar per equipped move, in the order it tries them, fills as its cooldown runs (white-tipped when
+ready); dots over it while it settles, a yellow bar while jammed. Clicking a creature opens its card: level, its stats (each named in
+full over a bar the card's width, filled out of the highest that stat can reach, as a Pokémon summary does; the terrain bonus a bright
+end), and its moves, which can be equipped, unequipped and reordered. Pressing a move's name **inspects** it: the stats give way to
+that move's numbers as this creature uses it (damage, reach or radius, cooldown, use time, and its effects), and the field rings its
+reach around the creature. A known move that is not equipped is equipped from there. Pressing it again brings the stats back.
 
-**Moving.** The card's MOVE (PLACE for a creature on the bench, or the M key) puts the card away and marks every tile the creature
-may go to; pressing one moves it there, and pressing another creature trades their places (one from the bench sends the other to the
-bench). A creature just taken at a milestone starts out being placed, so its card never covers half of the field before it has a
-tile. Escape calls it off.
+**Moving.** A creature moves only when asked to. The card's MOVE (PLACE for a creature on the bench, or the M key) puts the card away
+and marks every tile the creature may go to; pressing one moves it there, and pressing another creature trades their places (one from
+the bench sends the other to the bench). A creature just taken at a milestone starts out being placed, so its card never covers half of
+the field before it has a tile. Escape calls it off. Without MOVE, pressing an empty tile closes the card, as CLOSE does.
 
 Between waves the bar shows **what the next wave brings**: each enemy kind's walk and how many. It also has the speed button (1X or
 2X, or F) and, when a milestone follows the next wave, ELITE.
+
+**The offer.** A milestone's offer covers the field; its VIEW BOARD eye (or V) puts the cards away and shows the field through a faint
+veil, so the team's places can be weighed before choosing, and the eye again brings the offer back.
 
 ## Enemies
 

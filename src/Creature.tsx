@@ -14,8 +14,10 @@ export const SETTLE = 1.5;
 
 /** How far around itself a creature looks for enemies: more than any move reaches. */
 const LOOK = 120;
-/** Pixels across a creature: its collider, and what its selection frame, move ring and cooldown pips are placed around. */
+/** Pixels across a creature: its collider, and what its selection frame, move ring and cooldown bars are placed around. */
 const SIZE = 10;
+/** Pixels across each move's cooldown bar beside it. */
+const COOL_BAR = 6;
 
 interface CreatureProps {
   id: number;
@@ -44,7 +46,7 @@ interface CreatureProps {
  *
  * Put on a tile, or moved to another, it settles for `SETTLE` seconds before it starts a move. Near a jammer its cooldowns stop.
  *
- * It draws its species' (or form's) sprite (an idle bob), a ring while it is using a move, and under it one pip per equipped move
+ * It draws its species' (or form's) sprite (an idle bob), a ring while it is using a move, and beside it one bar per equipped move
  * that fills as the move's cooldown runs; grey dots while it settles, a yellow bar while jammed.
  */
 export function Creature({ id, species, level, form, terrain, equipped, x, y, selected, onUse }: CreatureProps) {
@@ -211,15 +213,14 @@ export function Creature({ id, species, level, form, terrain, equipped, x, y, se
       )}
       {s.jammed && <Shape kind="rect" width={SIZE} height={1} x={-SIZE / 2} y={-SIZE / 2 - 4} color={TYPE_COLOR.volt} />}
       {terrain > 0 && <Shape kind="rect" width={2} height={2} x={-SIZE / 2 - 1} y={-SIZE / 2 - 2} color={TYPE_COLOR[type]} />}
+      {/* Beside it, one bar per equipped move, top to bottom in the order it tries them: each fills as its cooldown runs, and is
+          white-capped while the move is ready. */}
+      <Shape kind="rect" width={COOL_BAR + 2} height={equipped.length * 3 + 1} x={SIZE / 2 + 1} y={-SIZE / 2 - 1} color="#10131c" />
       {equipped.map((move, i) => (
-        <Entity key={move} x={-SIZE / 2 + i * 3} y={SIZE / 2 + 1}>
-          <Shape kind="rect" width={2} height={3} color="#00000080" />
-          <Shape
-            kind="rect"
-            width={2}
-            height={3 * pipFill(s.cooldowns, move, stats)}
-            color={TYPE_COLOR[MOVES[move].type]}
-          />
+        <Entity key={move} x={SIZE / 2 + 2} y={-SIZE / 2 + i * 3}>
+          <Shape kind="rect" width={COOL_BAR} height={2} color="#3a4258" />
+          <Shape kind="rect" width={COOL_BAR * pipFill(s.cooldowns, move, stats)} height={2} color={TYPE_COLOR[MOVES[move].type]} />
+          {pipFill(s.cooldowns, move, stats) >= 1 && <Shape kind="rect" width={1} height={2} x={COOL_BAR - 1} color="#ffffff" />}
         </Entity>
       ))}
       <Collider width={SIZE} height={SIZE} x={-SIZE / 2} y={-SIZE / 2} tag="ally" data={{ id, x, y }} onReceive={(a) => hasten(a)} />

@@ -13,7 +13,7 @@ interface Drawn {
 }
 
 /**
- * Every tile of a map's ground, in reading order, with the frame of `assets/tiles.png` it shows: grass (now and then flowers, or
+ * Every tile of a map's ground, in reading order (and the rows under the grid, `BELOW`), with the frame of `assets/tiles.png` it shows: grass (now and then flowers, or
  * reeds at night) or the path (a road joined to its neighbours, or cobbles at night). Water and terrain are left out: each is drawn on a layer of its own (`waterOf`,
  * `terrainOf`), through its shader.
  */
@@ -23,7 +23,8 @@ function tilesOf(map: MapId): Drawn[] {
   const ends = [path.points[0]!, path.points[path.points.length - 1]!].map((p) => tileKey(Math.floor(p.x / TILE), Math.floor(p.y / TILE)));
   const road = (col: number, row: number) => pathTiles.has(tileKey(col, row)) || ends.includes(tileKey(col, row));
   const tiles: Drawn[] = [];
-  for (let i = 0; i < COLS * ROWS; i++) {
+  // The ground goes on past the grid, under the bar, so its see-through panels sit over grass rather than a blank strip.
+  for (let i = 0; i < COLS * (ROWS + BELOW); i++) {
     const col = i % COLS;
     const row = Math.floor(i / COLS);
     const key = tileKey(col, row);
@@ -45,6 +46,9 @@ function tilesOf(map: MapId): Drawn[] {
   }
   return tiles;
 }
+
+/** Rows of plain ground drawn under the grid, down to the bottom of the screen: nothing stands there, and the bar sits over them. */
+const BELOW = 3;
 
 /** A map's terrain tiles of one type. */
 function terrainOf(map: MapId, type: Type): Drawn[] {

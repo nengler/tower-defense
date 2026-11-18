@@ -72,8 +72,16 @@ test("a press on the card's own background stays on the card: the creature is no
   // card's empty middle, and (6, 4) a free tile the card does not cover.
   const { states } = play(`_*2, Enter, _*3, Enter, _*3, Enter, _*2, ${tile(3, 2)}, _*2, ${tile(15, 6)}, _*2`);
   assert.deepEqual(states[states.length - 1]!.at, ["3,2"], "the card took the press");
-  const moved = play(`_*2, Enter, _*3, Enter, _*3, Enter, _*2, ${tile(3, 2)}, _*2, ${tile(6, 4)}, _*2`);
-  assert.deepEqual(moved.states[moved.states.length - 1]!.at, ["6,4"], "a tile beside the card still takes one");
+  assert.equal(useGame.getState().selected, 1, "and the card is still up");
+});
+
+test("a press off the card on an empty tile closes it, as CLOSE does: a creature only moves when asked to", () => {
+  const { states } = play(`_*2, Enter, _*3, Enter, _*3, Enter, _*2, ${tile(3, 2)}, _*2, ${tile(6, 4)}, _*2`);
+  assert.deepEqual(states[states.length - 1]!.at, ["3,2"], "it did not move");
+  assert.equal(useGame.getState().selected, -1, "the card closed");
+  // Selected again (a press on it), then M: now a press on (6, 4) moves it there.
+  const moved = play(`_*2, Enter, _*3, Enter, _*3, Enter, _*2, ${tile(3, 2)}, _*2, ${tile(6, 4)}, _*2, ${tile(3, 2)}, _*2, M, _*2, ${tile(6, 4)}, _*2`);
+  assert.deepEqual(moved.states[moved.states.length - 1]!.at, ["6,4"]);
 });
 
 test("moving: M hides the card, so a creature can go anywhere, even under where its card was; a press on another creature swaps them", () => {
