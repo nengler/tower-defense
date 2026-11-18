@@ -17,20 +17,30 @@ import { useGame } from "./GameState.ts";
 import { Pause } from "./Pause.tsx";
 import { Popup } from "./Popup.tsx";
 import { Prompt } from "./Prompt.tsx";
+import { Range } from "./Range.tsx";
 import { save } from "./save.ts";
 import { ENEMIES, ENEMY_KINDS, hpOf, type EnemyKind } from "./rules/enemies.ts";
+import { rangeOf, type Ring } from "./rules/inspect.ts";
 import { BUFF_XP_SHARE } from "./rules/progress.ts";
-import { centre, mapOf, TERRAIN_BONUS, TILE, terrainAt, toughnessAt } from "./rules/map.ts";
+import { centre, mapOf, type MapId, TERRAIN_BONUS, TILE, terrainAt, toughnessAt } from "./rules/map.ts";
 import { tilesUnder } from "./rules/marks.ts";
 import { paletteParams } from "./rules/palette.ts";
-import { MOVES, REACTION_COLOR, REACTION_RADIUS } from "./rules/moves.ts";
-import { creatureById, onField } from "./rules/roster.ts";
-import { SPECIES } from "./rules/species.ts";
+import { MOVES, REACTION_COLOR, REACTION_RADIUS, type MoveId } from "./rules/moves.ts";
+import { creatureById, onField, type Owned } from "./rules/roster.ts";
+import { SPECIES, statsOf } from "./rules/species.ts";
 import { hpScale, milestonesFor, speedScale, startLives } from "./rules/tiers.ts";
 import { TYPE_COLOR } from "./rules/types.ts";
 import { Spots } from "./Spots.tsx";
 import { Tiles } from "./Tiles.tsx";
 import { MILESTONES, spawnsOf, WAVE_COUNT } from "./rules/waves.ts";
+
+/** The inspected move's reach around the selected creature, when it stands on the field and knows the move; else null. */
+function ringOf(chosen: Owned | undefined, map: MapId, inspected: MoveId | ""): Ring | null {
+  if (chosen === undefined || chosen.col < 0 || inspected === "" || !chosen.known.includes(inspected)) return null;
+  const at = centre(chosen.col, chosen.row);
+  const bonus = terrainAt(map, chosen.col, chosen.row) === SPECIES[chosen.species].type ? TERRAIN_BONUS : 0;
+  return { x: at.x, y: at.y, radius: rangeOf(inspected, statsOf(chosen.species, chosen.level, chosen.form, bonus)), color: TYPE_COLOR[MOVES[inspected].type] };
+}
 
 /**
  * The battle. It keeps what the whole battle shares: the lives, the wave and its spawner, and the lists of enemies, of moves landing
@@ -38,11 +48,13 @@ import { MILESTONES, spawnsOf, WAVE_COUNT } from "./rules/waves.ts";
  * roster. An enemy reports up when it dies (a brood splits into mites where it fell), gets through, takes damage (its attacker's XP)
  * or sets off a reaction; a creature when a move lands, which may lay marks on the path tiles it covers.
  *
- * Pressing a tile selects the creature on it or puts the selected one there; Backspace benches the selected one, M picks it up to move (the card makes way, the tiles it may go to are marked, and a
+ * Pressing a tile selects the creature on it, and pressing an empty one closes the card; Backspace benches the selected one, M (or
+ * MOVE on its card) picks it up to move (the card makes way, the tiles it may go to are marked, a press on one puts it there, and a
  * press on another creature trades their places), and 1 to 9 select a
  * creature by its place in the bar. The bar's button (or Space) starts the next wave; its ELITE (or E) makes that wave elite, when a
  * milestone follows it. When a creature has a choice waiting, a banner says so and N (or the banner) opens its prompt; the battle
- * stands still while the prompt is open. The selected creature's card shows over the field (its moves can be changed at any time);
+ * stands still while the prompt is open. The selected creature's card shows over the field (its moves can be changed at any time,
+ * and the move inspected on it has its reach ringed on the field);
  * Escape closes it, or pauses. Before each milestone wave a creature is offered, and no wave starts until one is taken.
  */
 export function Play() {
@@ -54,7 +66,9 @@ export function Play() {
   const eliteNext = useGame((s) => s.elite);
   const prompting = useGame((s) => s.prompting);
   const moving = useGame((s) => s.moving);
+  const inspected = useGame((s) => s.inspected);
   const chosen = creatureById(team, selectedId);
+  const ring = !moving ? ringOf(chosen, map, inspected) : null;
   const offering = useGame((s) => s.offer.length > 0);
   const waiting = team.some((c) => c.choice !== null);
   const { pause, finish, gainXp, benchSelected, startMove, choose, deselect, milestone, awardWave, toggleElite, toggleSpeed, openNextPrompt } =
@@ -235,6 +249,7 @@ export function Play() {
           <Mark key={m.id} id={m.id} col={m.col} row={m.row} kind={m.kind} from={m.from} userType={m.userType} burn={m.burn} onDone={faded} />
         ))}
         <Tiles />
+        <Range ring={ring} />
         {onField(team).map((c) => (
           <Creature
             key={c.id}
