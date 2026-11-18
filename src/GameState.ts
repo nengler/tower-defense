@@ -66,6 +66,8 @@ export const useGame = createGameState(
     speed: 1,
     /** The next wave is elite (tougher, and the milestone after it offers more). */
     elite: false,
+    /** Whether elite or not has been chosen for the next wave: once it has, it is locked in until that wave starts. */
+    eliteChosen: false,
     /** The creature whose learn prompt is open, or -1. The battle stands still while it is. */
     prompting: -1,
   },
@@ -94,6 +96,7 @@ export const useGame = createGameState(
       s.inspected = "";
       s.prompting = -1;
       s.elite = false;
+      s.eliteChosen = false;
       s.tier = Math.min(s.tier, s.unlocked);
       s.daily = "";
       const rolled = pick(SPECIES_IDS, OFFER_SIZE, s.seed);
@@ -115,9 +118,16 @@ export const useGame = createGameState(
       s.offer = rolled.picked;
       s.seed = rolled.seed;
     },
-    /** Make the next wave elite, or not. */
-    toggleElite(s) {
-      s.elite = !s.elite;
+    /** Choose whether the next wave is elite. Once chosen it is locked in: a second choice changes nothing. */
+    chooseElite(s, elite: boolean) {
+      if (s.eliteChosen) return;
+      s.elite = elite;
+      s.eliteChosen = true;
+    },
+    /** A wave started: the choice was used, and the next eligible wave asks again. */
+    clearElite(s) {
+      s.elite = false;
+      s.eliteChosen = false;
     },
     /** Fast-forward on or off. */
     toggleSpeed(s) {

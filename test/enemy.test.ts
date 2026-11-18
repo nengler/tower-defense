@@ -325,16 +325,17 @@ describe("the battle", () => {
   it("an elite wave: tougher enemies, and the milestone after it offers four creatures", () => {
     useGame.store.reset();
     const t = render(Play, {});
-    const { start, takeOffer, toggleElite } = useGame.actions();
+    const { start, takeOffer, chooseElite } = useGame.actions();
     start();
     takeOffer(useGame.getState().offer[0]!);
-    toggleElite();
+    chooseElite(true);
     t.step();
     t.input("Space");
     t.step(2);
     const play = t.state().s as { elite: boolean; enemies: { kind: string; maxHp: number }[]; active: boolean };
     assert.equal(play.elite, true);
-    assert.equal(useGame.getState().elite, false, "the toggle is used up");
+    assert.equal(useGame.getState().elite, false, "the choice is used up");
+    assert.equal(useGame.getState().eliteChosen, false, "and the next eligible wave asks again");
     const first = play.enemies[0]!;
     assert.equal(first.maxHp, Math.round(ENEMIES.crawler.hp * 1.5));
     t.stepUntil(() => !(t.state().s as { active: boolean }).active, { maxSteps: 60 * 120 });
