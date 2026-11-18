@@ -217,14 +217,14 @@ on a day plays the same run. It unlocks nothing.
 
 ## Screen
 
-320 × 180. The field is a 20 × 9 grid of 16 px tiles (320 × 144) with the path drawn on it; the ground goes on under it to the
+320 × 180, with text in the engine's `tse:tiny5` (8 px a line), the largest of its fonts made for that size. The field is a 20 × 9 grid of 16 px tiles (320 × 144) with the path drawn on it; the ground goes on under it to the
 bottom of the screen, and the bar sits over those 36 px as separate see-through panels: lives and the wave on the left, a chip for
 each creature owned in the middle (the creature itself, bright on the field and faded on the bench, white-edged while selected,
 yellow-edged with a `!` while a choice waits, and how many are on the field of the 5), and the start-wave button on the right. Beside
 each creature on the field, one bar per equipped move, in the order it tries them, fills as its cooldown runs (white-tipped when
-ready); dots over it while it settles, a yellow bar while jammed. Clicking a creature opens its card: level, its stats (each named in
-full over a bar the card's width, filled out of the highest that stat can reach, as a Pokémon summary does; the terrain bonus a bright
-end), and its moves, which can be equipped, unequipped and reordered. Pressing a move's name **inspects** it: the stats give way to
+ready); dots over it while it settles, a yellow bar while jammed. Clicking a creature opens its card: mastery, level, its stats (each a line
+with its name, a bar filled out of the highest that stat can reach, as a Pokémon summary does, and its value; the terrain bonus a
+bright end on the bar and a `+2` after the value), and its moves, which can be equipped, unequipped and reordered. Pressing a move's name **inspects** it: the stats give way to
 that move's numbers as this creature uses it (damage, reach or radius, cooldown, use time, and its effects), and the field rings its
 reach around the creature. A known move that is not equipped is equipped from there. Pressing it again brings the stats back.
 

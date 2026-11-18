@@ -23,6 +23,10 @@ function inspectedOr(creature: Owned, move: MoveId | ""): MoveId {
 /** Pixels across. */
 const WIDTH = CARD_WIDTH;
 
+/** Pixels for a stat's name, and for its value (and a terrain bonus after it), either side of its bar. */
+const STAT_LABEL = 40;
+const STAT_VALUE = 18;
+
 /** The stats, as the card's bars list them. */
 const STAT_ROWS = [
   { key: "atk", label: "ATTACK" },
@@ -36,9 +40,10 @@ interface CardProps {
 }
 
 /**
- * The selected creature's card, over the side of the field it is not on: its name (or its form's), level and XP, its stats, each
- * named in full over a bar the card's width, filled out of the highest that stat can reach (`STAT_CEILING`, as a Pokémon summary
- * does), its terrain's bonus a yellow end on each when it stands on its own type's terrain (ATTUNED), a CHOOSE button while a choice waits, and its moves. The
+ * The selected creature's card, over the side of the field it is not on: its name (or its form's), its mastery (`M3`), level and XP,
+ * its stats, each a line with its name, a bar filled out of the highest that stat can reach (`STAT_CEILING`, as a Pokémon summary
+ * does) and its value, with its terrain's bonus a yellow end on the bar and a yellow `+2` after the value when it stands on its own
+ * type's terrain, a CHOOSE button while a choice waits, and its moves. The
  * equipped moves are listed in the order it tries them, each with `UP` (try it earlier) and `x` (unequip); the moves it knows but has
  * not equipped follow. Pressing a move's name inspects it: the stats give way to that move's numbers as this creature uses it
  * (`moveDetails`), the field rings its reach (`Play`), and a known move gets an EQUIP button while a slot is free; pressing it again
@@ -85,13 +90,16 @@ export function Card({ creature }: CardProps) {
     >
       <Flex direction="row" justifyContent="space-between" width="grow">
         <Text color={TYPE_COLOR[info.type]}>{creature.form === "" ? info.name : FORMS[creature.form].name}</Text>
-        <Text>{`LV${creature.level}`}</Text>
+        <Flex direction="row" gap={3}>
+          {creature.mastery > 0 && <Text color="#f0d84a">{`M${creature.mastery}`}</Text>}
+          <Text>{`LV${creature.level}`}</Text>
+        </Flex>
       </Flex>
       <Flex width="grow" height={2} background="#2a2f40">
         <Flex width={`${maxed ? 100 : (100 * creature.xp) / xpToNext(creature.level)}%`} height={2} background="#a7b0c8" />
       </Flex>
       {showing && (
-        <Flex direction="column" gap={2} width="grow">
+        <Flex direction="column" gap={1} width="grow">
           <Flex direction="row" justifyContent="space-between" width="grow" alignItems="center">
             <Text color={TYPE_COLOR[MOVES[look].type]}>{MOVES[look].name}</Text>
             {!creature.equipped.includes(look) && !full && (
@@ -100,37 +108,35 @@ export function Card({ creature }: CardProps) {
               </Flex>
             )}
           </Flex>
-          <Text color="#a7b0c8" maxWidth={WIDTH - 10}>
-            {MOVES[look].text}
-          </Text>
-          <Flex direction="row" wrap columnGap={4} rowGap={1} width="grow">
+          {/* Each number a label and its value, flowing in rows: as many fit on a line as their lengths allow. */}
+          <Flex direction="row" wrap columnGap={6} rowGap={1} width="grow">
             {moveDetails(look, stats).map((d) => (
-              <Flex key={d.label} direction="row" justifyContent="space-between" width={54}>
+              <Flex key={d.label} direction="row" gap={2}>
                 <Text color="#6a7088">{d.label}</Text>
-                <Text color="#a7b0c8">{d.value}</Text>
+                <Text color="#e8ecf8">{d.value}</Text>
               </Flex>
             ))}
           </Flex>
         </Flex>
       )}
       {!showing && (
-      <Flex direction="column" gap={2} width="grow">
-        {STAT_ROWS.map((r) => (
-          <Flex key={r.key} direction="column" gap={1} width="grow">
-            <Flex direction="row" justifyContent="space-between" width="grow">
-              <Text color="#6a7088">{r.label}</Text>
-              <Text color="#a7b0c8">{`${stats[r.key]}`}</Text>
+        <Flex direction="column" gap={1} width="grow">
+          {STAT_ROWS.map((r) => (
+            <Flex key={r.key} direction="row" gap={3} width="grow" alignItems="center">
+              <Flex width={STAT_LABEL}>
+                <Text color="#6a7088">{r.label}</Text>
+              </Flex>
+              <Flex direction="row" width="grow" height={2} background="#4c5466">
+                <Flex width={`${statBarPercent(r.key, stats[r.key] - bonus)}%`} height={2} background="#a7b0c8" />
+                {bonus > 0 && <Flex width={`${statBarPercent(r.key, bonus)}%`} height={2} background="#f0d84a" />}
+              </Flex>
+              <Flex direction="row" width={STAT_VALUE} justifyContent="end">
+                <Text color="#a7b0c8">{`${stats[r.key] - bonus}`}</Text>
+                {bonus > 0 && <Text color="#f0d84a">{`+${bonus}`}</Text>}
+              </Flex>
             </Flex>
-            <Flex direction="row" width="grow" height={2} background="#4c5466">
-              <Flex width={`${statBarPercent(r.key, stats[r.key] - bonus)}%`} height={2} background="#a7b0c8" />
-              {bonus > 0 && <Flex width={`${statBarPercent(r.key, bonus)}%`} height={2} background="#f0d84a" />}
-            </Flex>
-          </Flex>
-        ))}
-      </Flex>
-      )}
-      {!showing && (creature.mastery > 0 || attuned) && (
-        <Text color="#f0d84a">{`${creature.mastery > 0 ? `MASTERY ${creature.mastery} ` : ""}${attuned ? "ATTUNED" : ""}`}</Text>
+          ))}
+        </Flex>
       )}
       {creature.choice !== null && (
         <Flex width="grow" paddingX={2} background="#5a4a1a" onPress={() => openPrompt(creature.id)}>
@@ -138,7 +144,7 @@ export function Card({ creature }: CardProps) {
         </Flex>
       )}
       {/* A gap between the stats and the moves. */}
-      <Flex height={showing ? 2 : 5} />
+      <Flex height={2} />
       <Text color="#6a7088">{`MOVES ${creature.equipped.length}/${slots}: PRESS TO INSPECT`}</Text>
       {creature.equipped.map((move, i) => (
         <Flex key={move} direction="row" gap={2} width="grow" alignItems="center">
@@ -153,26 +159,28 @@ export function Card({ creature }: CardProps) {
           </Flex>
         </Flex>
       ))}
-      {spare.length > 0 && <Text color="#6a7088">{full ? "KNOWN (SLOTS FULL)" : "KNOWN: PRESS TO INSPECT"}</Text>}
-      {/* The spare moves as chips that wrap, so a creature that knows many still fits on the card. */}
-      <Flex direction="row" wrap gap={2} width="grow">
-        {spare.map((move) => (
-          <Flex key={move} paddingX={2} background={showing && move === look ? "#4a5a7a" : full ? "#1c2030" : "#2a3a30"} onPress={() => inspect(move)}>
-            <Text color={full ? "#6a7088" : TYPE_COLOR[MOVES[move].type]}>{MOVES[move].name}</Text>
-          </Flex>
-        ))}
-      </Flex>
+      {/* The spare moves as chips that wrap after the label, so a creature that knows many still fits on the card. */}
+      {spare.length > 0 && (
+        <Flex direction="row" wrap gap={2} width="grow" alignItems="center">
+          <Text color="#6a7088">{full ? "KNOWN (FULL)" : "KNOWN"}</Text>
+          {spare.map((move) => (
+            <Flex key={move} paddingX={2} background={showing && move === look ? "#4a5a7a" : full ? "#1c2030" : "#2a3a30"} onPress={() => inspect(move)}>
+              <Text color={full ? "#6a7088" : TYPE_COLOR[MOVES[move].type]}>{MOVES[move].name}</Text>
+            </Flex>
+          ))}
+        </Flex>
+      )}
       <Flex width="grow" height="grow" />
       <Flex direction="row" gap={4} width="grow">
-        <Flex paddingX={3} paddingY={1} background="#3a5a8a" onPress={startMove}>
+        <Flex paddingX={3} background="#3a5a8a" onPress={startMove}>
           <Text>{creature.col >= 0 ? "MOVE" : "PLACE"}</Text>
         </Flex>
         {creature.col >= 0 && (
-          <Flex paddingX={3} paddingY={1} background="#2a2f40" onPress={benchSelected}>
+          <Flex paddingX={3} background="#2a2f40" onPress={benchSelected}>
             <Text>BENCH</Text>
           </Flex>
         )}
-        <Flex paddingX={3} paddingY={1} background="#2a2f40" onPress={deselect}>
+        <Flex paddingX={3} background="#2a2f40" onPress={deselect}>
           <Text>CLOSE</Text>
         </Flex>
       </Flex>
