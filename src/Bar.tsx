@@ -11,8 +11,8 @@ interface BarProps {
   wave: number;
   /** A wave is on. */
   active: boolean;
-  /** The next wave may be made elite (a milestone follows it). */
-  canElite: boolean;
+  /** Whether the next wave is elite is still being chosen (`Elite`): START waits for it. */
+  waiting: boolean;
   onStartWave: () => void;
 }
 
@@ -26,15 +26,15 @@ const TOP = FIELD_HEIGHT + 2;
  * stand on). On the left the lives and the wave. In the middle a chip for every creature owned, showing the creature itself: bright on
  * the field, faded on the bench, white-edged while selected, a yellow `!` when a choice waits; pressing one selects it. On the
  * right, between waves, what the next wave brings (each kind's walk and how many) over the button that starts it (Space too), and
- * the speed (F) and, when a milestone follows the next wave, ELITE (E): a tougher wave for a bigger offer after it.
+ * the speed (F) and, when the next wave was chosen to be elite (`Elite`), an ELITE tag. START waits while that choice is open.
  */
-export function Bar({ lives, wave, active, canElite, onStartWave }: BarProps) {
+export function Bar({ lives, wave, active, waiting, onStartWave }: BarProps) {
   const roster = useGame((s) => s.roster);
   const selected = useGame((s) => s.selected);
   const tier = useGame((s) => s.tier);
   const speed = useGame((s) => s.speed);
   const elite = useGame((s) => s.elite);
-  const { select, toggleSpeed, toggleElite } = useGame.actions();
+  const { select, toggleSpeed } = useGame.actions();
   const next = previewOf(wave + 1, tier);
   const between = !active && wave < WAVE_COUNT;
   return (
@@ -107,15 +107,15 @@ export function Bar({ lives, wave, active, canElite, onStartWave }: BarProps) {
           </Flex>
         )}
         <Flex direction="row" gap={2}>
-          {canElite && (
-            <Flex paddingX={3} paddingY={2} borderRadius={2} background={elite ? "#8a3a5ae0" : GLASS} onPress={toggleElite}>
-              <Text color={elite ? "#ffffff" : "#a7b0c8"}>ELITE</Text>
+          {between && elite && (
+            <Flex paddingX={3} paddingY={2} borderRadius={2} background="#8a3a5ae0">
+              <Text color="#ffffff">ELITE</Text>
             </Flex>
           )}
           <Flex paddingX={3} paddingY={2} borderRadius={2} background={speed > 1 ? "#3a5a8ae0" : GLASS} onPress={toggleSpeed}>
             <Text color={speed > 1 ? "#ffffff" : "#a7b0c8"}>{`${speed}X`}</Text>
           </Flex>
-          {between && (
+          {between && !waiting && (
             <Flex paddingX={4} paddingY={2} borderRadius={2} background="#3a5a8ae0" onPress={onStartWave} pressKey="Space">
               <Text color="#ffffff">START</Text>
             </Flex>

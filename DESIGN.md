@@ -197,8 +197,10 @@ and mist.
 **The curve.** Every wave adds 28 % of an enemy's first-wave hit points, plus 4 % times the square of the waves gone by, so the
 last waves pull ahead of a team that has grown strong. Bosses' hit points are their own.
 
-**Elite waves.** Before a wave that a milestone follows, ELITE (or E) makes it elite: its enemies have 50 % more hit points, and the
-milestone after it offers four creatures instead of three.
+**Elite waves.** Between waves, when a milestone follows the next one, a panel asks whether to fight it as an elite wave: its
+enemies have 50 % more hit points, and the milestone after it offers four creatures instead of three. NORMAL or ELITE (or E) locks
+the answer in until that wave starts, and START only shows once it is given; Space meanwhile starts it as a normal wave. The panel
+is not modal, so creatures can still be placed and moved while deciding.
 
 **Tiers.** A run is played at a difficulty tier; winning at the highest tier unlocked opens the next. Each adds one change to the
 ones below it:
@@ -234,7 +236,7 @@ the bench sends the other to the bench). A creature just taken at a milestone st
 the field before it has a tile. Escape calls it off. Without MOVE, pressing an empty tile closes the card, as CLOSE does.
 
 Between waves the bar shows **what the next wave brings**: each enemy kind's walk and how many. It also has the speed button (1X or
-2X, or F) and, when a milestone follows the next wave, ELITE.
+2X, or F) and, once the next wave was chosen to be elite, an ELITE tag.
 
 **The offer.** A milestone's offer covers the field; its VIEW BOARD eye (or V) puts the cards away and shows the field through a faint
 veil, so the team's places can be weighed before choosing, and the eye again brings the offer back.

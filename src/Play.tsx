@@ -1,7 +1,8 @@
 import { Entity, Flex, Hud, Layer, ParticleLayer, Text, useInput, useMutable, useUpdate } from "@tsengine/runtime/jsx";
 
 import { Banner } from "./Banner.tsx";
-import { BANNER_WIDTH, CARD_WIDTH } from "./rules/hud.ts";
+import { Elite } from "./Elite.tsx";
+import { BANNER_WIDTH, CARD_WIDTH, ELITE_WIDTH } from "./rules/hud.ts";
 import { Bar } from "./Bar.tsx";
 import { Card } from "./Card.tsx";
 import type { Effect as Used, Foe, Mark as Laid, Placed, Reacted } from "./battle.ts";
@@ -53,6 +54,13 @@ function bannerX(chosen: Owned | undefined, moving: boolean): number {
   return left + (320 - CARD_WIDTH - 2 - BANNER_WIDTH) / 2;
 }
 
+/** Where the elite choice goes: under the middle of the part of the field the card leaves free, as the banner does. */
+function eliteX(chosen: Owned | undefined): number {
+  if (chosen === undefined) return (320 - ELITE_WIDTH) / 2;
+  const left = chosen.col >= 10 ? CARD_WIDTH + 2 : 0;
+  return left + (320 - CARD_WIDTH - 2 - ELITE_WIDTH) / 2;
+}
+
 /**
  * The battle. It keeps what the whole battle shares: the lives, the wave and its spawner, and the lists of enemies, of moves landing
  * and of marks on the path, which it draws as components that each keep their own state; the creatures on the field come from the
@@ -62,8 +70,9 @@ function bannerX(chosen: Owned | undefined, moving: boolean): number {
  * Pressing a tile selects the creature on it, and pressing an empty one closes the card; Backspace benches the selected one, M (or
  * MOVE on its card) picks it up to move (the card makes way, the tiles it may go to are marked, a press on one puts it there, and a
  * press on another creature trades their places), and 1 to 9 select a
- * creature by its place in the bar. The bar's button (or Space) starts the next wave; its ELITE (or E) makes that wave elite, when a
- * milestone follows it. When a creature has a choice waiting, a banner says so and N (or the banner) opens its prompt; the battle
+ * creature by its place in the bar. The bar's button (or Space) starts the next wave. When a milestone follows the next wave, a panel
+ * first asks whether it is elite (NORMAL, or ELITE / E), and the answer is locked in until it starts; START waits for it, and Space
+ * meanwhile starts it as a normal wave. When a creature has a choice waiting, a banner says so and N (or the banner) opens its prompt; the battle
  * stands still while the prompt is open. The selected creature's card shows over the field (its moves can be changed at any time,
  * and the move inspected on it has its reach ringed on the field);
  * Escape closes it, or pauses. Before each milestone wave a creature is offered, and no wave starts until one is taken.
@@ -75,6 +84,7 @@ export function Play() {
   const map = useGame((s) => s.map);
   const tier = useGame((s) => s.tier);
   const eliteNext = useGame((s) => s.elite);
+  const eliteChosen = useGame((s) => s.eliteChosen);
   const prompting = useGame((s) => s.prompting);
   const moving = useGame((s) => s.moving);
   const inspected = useGame((s) => s.inspected);
@@ -82,7 +92,7 @@ export function Play() {
   const ring = !moving ? ringOf(chosen, map, inspected) : null;
   const offering = useGame((s) => s.offer.length > 0);
   const waiting = team.some((c) => c.choice !== null);
-  const { pause, finish, gainXp, benchSelected, startMove, choose, deselect, milestone, awardWave, toggleElite, toggleSpeed, openNextPrompt } =
+  const { pause, finish, gainXp, benchSelected, startMove, choose, deselect, milestone, awardWave, chooseElite, clearElite, toggleSpeed, openNextPrompt } =
     useGame.actions();
 
   const s = useMutable({
@@ -109,6 +119,8 @@ export function Play() {
   const milestones = milestonesFor(tier, MILESTONES);
   /** A milestone follows the next wave: it may be made elite. */
   const canElite = !s.active && s.wave < WAVE_COUNT && milestones.includes(s.wave + 2);
+  /** The next wave may be elite and that is not chosen yet: the choice is asked, and START waits for it. */
+  const undecided = canElite && !eliteChosen;
 
   useUpdate((dt) => {
     if (s.lives <= 0) {
@@ -143,7 +155,7 @@ export function Play() {
     if (input.pressed("M")) startMove();
     if (input.pressed("N")) openNextPrompt();
     if (input.pressed("F")) toggleSpeed();
-    if (input.pressed("E") && canElite) toggleElite();
+    if (input.pressed("E") && undecided && !offering) chooseElite(true);
     for (let n = 1; n <= 9; n++) if (input.pressed(`${n}`)) choose(n - 1);
   });
 
@@ -151,12 +163,16 @@ export function Play() {
     if (s.active || s.wave >= WAVE_COUNT || offering) return;
     s.wave += 1;
     s.active = true;
-    s.elite = eliteNext && milestones.includes(s.wave + 1);
-    if (eliteNext) toggleElite();
+    s.elite = eliteNext && eliteChosen && milestones.includes(s.wave + 1);
+    clearElite();
     sfx.play("wave");
     s.clock = 0;
     s.spawned = 0;
   };
+  useInput((input) => {
+    // Space with the elite choice still open starts a normal wave (with START shown, its own key starts the wave).
+    if (input.pressed("Space") && undecided) startWave();
+  });
   const killed = (id: number, x: number, y: number, dist: number) => {
     // The puff in the fallen enemy's type colour; a brood's mites start where it fell.
     const foe = s.enemies.find((e) => e.id === id);
@@ -312,7 +328,8 @@ export function Play() {
       </Layer>
       <Hud>
         <Layer shader="palette.glsl" params={paletteParams(map)}>
-          <Bar lives={s.lives} wave={s.wave} active={s.active} canElite={canElite} onStartWave={startWave} />
+          <Bar lives={s.lives} wave={s.wave} active={s.active} waiting={undecided} onStartWave={startWave} />
+          {undecided && !offering && !moving && prompting < 0 && <Elite wave={s.wave + 1} x={eliteX(chosen)} />}
           {waiting && prompting < 0 && <Banner x={bannerX(chosen, moving)} />}
           {chosen !== undefined && prompting < 0 && !moving && <Card creature={chosen} />}
           {chosen !== undefined && prompting < 0 && moving && (

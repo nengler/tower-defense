@@ -44,3 +44,16 @@ test("inspecting a move toggles it; selecting another creature, or closing the c
   select(1);
   assert.equal(useGame.getState().inspected, "", "selecting it again deselects it");
 });
+
+test("the elite choice is locked in once made, until a wave starts", () => {
+  const { start, chooseElite, clearElite } = useGame.actions();
+  start();
+  assert.equal(useGame.getState().eliteChosen, false);
+  chooseElite(true);
+  chooseElite(false);
+  assert.equal(useGame.getState().elite, true, "a second choice changes nothing");
+  clearElite();
+  assert.deepEqual([useGame.getState().elite, useGame.getState().eliteChosen], [false, false]);
+  chooseElite(false);
+  assert.deepEqual([useGame.getState().elite, useGame.getState().eliteChosen], [false, true]);
+});
