@@ -37,11 +37,11 @@ export function moveDetails(move: MoveId, stats: Stats): readonly Detail[] {
   const u = scaled(move, stats);
   const e = m.effects;
   const lines: Detail[] = [{ label: m.shape === "buff" ? "BUFF" : m.shape.toUpperCase(), value: m.type.toUpperCase() }];
-  if (m.damage > 0) lines.push({ label: "DAMAGE", value: `${Math.round(u.damage)}` });
+  if (m.damage > 0) lines.push({ label: "DMG", value: `${Math.round(u.damage)}` });
   lines.push({ label: m.shape === "pulse" || m.shape === "buff" ? "RADIUS" : "REACH", value: `${Math.round(rangeOf(move, stats))}` });
   if (m.shape === "splash") lines.push({ label: "SPLASH", value: `${Math.round(u.radius)}` });
-  lines.push({ label: "COOLDOWN", value: secs(u.cooldown) });
-  lines.push({ label: "USE TIME", value: secs(u.animation) });
+  lines.push({ label: "CD", value: secs(u.cooldown) });
+  lines.push({ label: "USE", value: secs(u.animation) });
   if (e.stun !== undefined) lines.push({ label: "STUN", value: secs(e.stun) });
   if (e.slow !== undefined) lines.push({ label: "SLOW", value: `${pct(e.slow)} ${secs(e.slowFor ?? 0)}` });
   if (e.burn !== undefined) lines.push({ label: "BURN", value: `${Math.round(u.burn)}/S ${secs(e.burnFor ?? 0)}` });

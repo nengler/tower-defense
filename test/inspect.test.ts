@@ -14,9 +14,9 @@ test("a move's details are its numbers as this creature uses them", () => {
   const stats = statsAt("emberling", 1);
   const u = scaled("spark", stats);
   const lines = Object.fromEntries(moveDetails("spark", stats).map((d) => [d.label, d.value]));
-  assert.equal(lines.DAMAGE, `${Math.round(u.damage)}`);
+  assert.equal(lines.DMG, `${Math.round(u.damage)}`);
   assert.equal(lines.REACH, `${Math.round(u.reach)}`);
-  assert.equal(lines.COOLDOWN, `${Math.round(u.cooldown * 10) / 10}S`);
+  assert.equal(lines.CD, `${Math.round(u.cooldown * 10) / 10}S`);
   assert.equal(lines.RADIUS, undefined, "a hit has a reach, not a radius");
 });
 
