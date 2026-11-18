@@ -1,6 +1,7 @@
 import { Entity, Flex, Hud, Layer, ParticleLayer, Text, useInput, useMutable, useUpdate } from "@tsengine/runtime/jsx";
 
 import { Banner } from "./Banner.tsx";
+import { BANNER_WIDTH, CARD_WIDTH } from "./rules/hud.ts";
 import { Bar } from "./Bar.tsx";
 import { Card } from "./Card.tsx";
 import type { Effect as Used, Foe, Mark as Laid, Placed, Reacted } from "./battle.ts";
@@ -40,6 +41,16 @@ function ringOf(chosen: Owned | undefined, map: MapId, inspected: MoveId | ""): 
   const at = centre(chosen.col, chosen.row);
   const bonus = terrainAt(map, chosen.col, chosen.row) === SPECIES[chosen.species].type ? TERRAIN_BONUS : 0;
   return { x: at.x, y: at.y, radius: rangeOf(inspected, statsOf(chosen.species, chosen.level, chosen.form, bonus)), color: TYPE_COLOR[MOVES[inspected].type] };
+}
+
+/**
+ * Where the choice banner goes across the top: the middle of the screen, or, while a card is up, the middle of the part of the
+ * field the card leaves free, so the two never overlap. The card is on the left for a creature in the right half, else on the right.
+ */
+function bannerX(chosen: Owned | undefined, moving: boolean): number {
+  if (chosen === undefined || moving) return (320 - BANNER_WIDTH) / 2;
+  const left = chosen.col >= 10 ? CARD_WIDTH + 2 : 0;
+  return left + (320 - CARD_WIDTH - 2 - BANNER_WIDTH) / 2;
 }
 
 /**
@@ -302,7 +313,7 @@ export function Play() {
       <Hud>
         <Layer shader="palette.glsl" params={paletteParams(map)}>
           <Bar lives={s.lives} wave={s.wave} active={s.active} canElite={canElite} onStartWave={startWave} />
-          {waiting && prompting < 0 && <Banner />}
+          {waiting && prompting < 0 && <Banner x={bannerX(chosen, moving)} />}
           {chosen !== undefined && prompting < 0 && !moving && <Card creature={chosen} />}
           {chosen !== undefined && prompting < 0 && moving && (
             <Flex float anchor="top-left" to="top-left" x={0} y={0} width={320} paddingY={1} justifyContent="center" background="#141824c0">

@@ -1,6 +1,7 @@
 import { Flex, Text } from "@tsengine/runtime/jsx";
 
 import { useGame } from "./GameState.ts";
+import { CARD_WIDTH } from "./rules/hud.ts";
 import { FIELD_HEIGHT, TERRAIN_BONUS, terrainAt } from "./rules/map.ts";
 import { moveDetails } from "./rules/inspect.ts";
 import { MOVES, type MoveId } from "./rules/moves.ts";
@@ -20,7 +21,7 @@ function inspectedOr(creature: Owned, move: MoveId | ""): MoveId {
 }
 
 /** Pixels across. */
-const WIDTH = 124;
+const WIDTH = CARD_WIDTH;
 
 /** The stats, as the card's bars list them. */
 const STAT_ROWS = [

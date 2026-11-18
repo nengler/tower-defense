@@ -1,6 +1,7 @@
 import { Flex, Text } from "@tsengine/runtime/jsx";
 
 import { useGame } from "./GameState.ts";
+import { BANNER_WIDTH } from "./rules/hud.ts";
 import { SPECIES } from "./rules/species.ts";
 import { TYPE_COLOR } from "./rules/types.ts";
 
@@ -8,7 +9,12 @@ import { TYPE_COLOR } from "./rules/types.ts";
  * Over the top of the field while a creature has a choice waiting (a move to learn, or a form to evolve into): who, and how to open
  * it. Pressing it (or N) opens the prompt. A move only gets used once it is learned, so the banner stays until every choice is made.
  */
-export function Banner() {
+interface BannerProps {
+  /** Pixels from the left of the screen: `Play` moves it clear of the card. */
+  x: number;
+}
+
+export function Banner({ x }: BannerProps) {
   const roster = useGame((s) => s.roster);
   const { openNextPrompt } = useGame.actions();
   const waiting = roster.filter((c) => c.choice !== null);
@@ -19,9 +25,9 @@ export function Banner() {
       float
       anchor="top-left"
       to="top-left"
-      x={96}
+      x={x}
       y={2}
-      width={128}
+      width={BANNER_WIDTH}
       direction="row"
       justifyContent="center"
       gap={3}
